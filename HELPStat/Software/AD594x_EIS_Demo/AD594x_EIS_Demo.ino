@@ -114,7 +114,7 @@ void loop() {
     /* Start, Stop, NumPoints, Vbias, Vzero, Rcal, gain array, gain size, Excitation Gain, DAC Gain*/
     demo.AD5940_TDD(100000, 0.15, 6, 0.0, 0.0, 9870, test, gainSize, 1, 1);
     demo.runSweep(numCycles, delaySecs); // Run the Sweep
-    demo.saveDataEIS("05-7-24-cortisol", "e4-7-ng-ml-cortisol");
+    demo.saveDataEIS("folder-name-here", "file-name-here");
 
     /* Current Draw Code - (no sweep but set for measurement)*/
 //    demo.AD5940_TDD(startFreq, endFreq, 6, 0.0, 0.0, 9870, test, gainSize, 1, 1);
