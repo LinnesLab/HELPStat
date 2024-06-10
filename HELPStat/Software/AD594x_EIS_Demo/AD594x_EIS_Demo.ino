@@ -1,5 +1,37 @@
+/*
+    AUTHOR: Kevin Alessandro Bautista
+    EMAIL: kbautis@purdue.edu
+
+    DISCLAIMER: 
+    Linnes Lab code, firmware, and software is released under the MIT License
+    (http://opensource.org/licenses/MIT).
+    
+    The MIT License (MIT)
+    
+    Copyright (c) 2024 Linnes Lab, Purdue University, West Lafayette, IN, USA
+    
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights to
+    use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+    of the Software, and to permit persons to whom the Software is furnished to do
+    so, subject to the following conditions:
+    
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+    
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+*/
+
 #include "HELPStat.h"
 
+/* Reference constants for gain values - taken from AD5941.h library by Analog Devices */
 //#define HSTIARTIA_200               0     /**< HSTIA Internal RTIA resistor 200  */
 //#define HSTIARTIA_1K                1     /**< HSTIA Internal RTIA resistor 1K   */
 //#define HSTIARTIA_5K                2     /**< HSTIA Internal RTIA resistor 5K   */
@@ -12,15 +44,16 @@
 
 //#define EXCITBUFGAIN_2              0   /**< Excitation buffer gain is x2 */
 //#define EXCITBUFGAIN_0P25           1   /**< Excitation buffer gain is x1/4 */
-///* HSDAC PGA Gain selection(DACCON.BIT0) */
+
 //#define HSDACGAIN_1                 0   /**< Gain is x1 */
 //#define HSDACGAIN_0P2               1   /**< Gain is x1/5 */
 
+/* Using I2C pins as GPIOs for buttons - Optional */
 #define BUTTON 7
 #define LEDPIN 6
 
 calHSTIA test[] = {          
-//  {0.51  HSTIARTIA_40K}       
+  {0.51,  HSTIARTIA_40K},       
   {1.5,         HSTIARTIA_10K},
   {20,      HSTIARTIA_5K},
   {150,       HSTIARTIA_5K},
@@ -28,7 +61,7 @@ calHSTIA test[] = {
   {100000,     HSTIARTIA_200}  
 };    
  
-// Variables for function inputs 
+/* Variables for function inputs */
 int gainSize = (int)sizeof(test) / sizeof(test[0]);
 
 uint32_t numCycles = 0; 
@@ -36,65 +69,52 @@ uint32_t delaySecs = 0;
 uint32_t numPoints = 6; 
 
 float startFreq = 100; 
-float endFreq = 0.1; 
+float endFreq = 0.15; 
 float biasVolt = 0.0; 
 float zeroVolt = 0.0; 
-float rcalVal = 9870; // Measured resistance of 10k resistor: 9.87k
+float rcalVal = 9870; // Use the measured resistance of the chosen calibration resistor
 
 int extGain = 1; 
 int dacGain = 1; 
 
-
 HELPStat demo;
+
 void setup() {
   
-  /* Initializing Analog Pins and Potentiostat pins */
+  /* Optional inputs to establish pins for button and LEDs*/
   pinMode(BUTTON, INPUT); 
   pinMode(LEDPIN, OUTPUT);
   digitalWrite(LEDPIN, HIGH); // Initial LED State
-  demo.AD5940Start();
-  Serial.println("Pins configured! Press button to begin.");
   
+  /* 
+   *  Initializing Analog Pins and Potentiostat pins - need this function 
+   *  regardless of running Analog Devices or our EIS code.
+  */
+  demo.AD5940Start();
 
-  /* Main Testing Code */
+  // Configuration is complete
+  Serial.println("Pins configured! Press button to begin.");
+
+  /* Main Testing Code - run these functions if you want to run without the loop */
 //  demo.AD5940_TDD(100000, 0.1, 6, 0.0, 0.0, 9870, test, gainSize, 1, 1);
 //  Serial.print("Calibration size: ");
 //  Serial.println(gainSize);
-
-  /* Testing Bias and Single Shot Frequency */
-//  demo.AD5940_BiasCfg(100000, 0.1, 6, -100.0, 0.0, 0);
   
-  /* Testing Sweep */
+  /* Testing Sweep - needs AD5940_TDD to be uncommented too */
 //  demo.runSweep(0, 0);
 
   /* Testing SD card */
 //  demo.printData(); `
 //  demo.saveDataEIS("EIS data", "03-02-24-pc-ph-e2-5mM-kfecn-pbs-1Mtie");
 
-  /* Testing the HSTIA Function */
-//  delay(5000);
-//  for(uint32_t i = 0; i < sizeof(freqArr) / sizeof(freqArr[0]); i++)
-//  {
-//    demo.configureFrequency(freqArr[i]);
-//  }
-
-  /* Running Analog Devices Code for Impedance */
+  /* 
+   *  Running Analog Devices Code for Impedance - adapted to use the gain array. 
+   *  Note: this runs indefinitely. Comment out all the other demo functions 
+   *  exceot AD5940_Start before running this. 
+  */
+  
+  /* Start, Stop, Num points per decade, gain size, and gain array */
 //    demo.AD5940_Main(100000, 0.1, 6, gainSize, test);
-
-  /* Testing ADC Voltage Readings */
-
-//  demo.AD5940_TDDNoise(0.0, 0.0); // Using default 1.11V reference
-//  demo.AD5940_ADCMeasure();
-
-    /* Noise Measurements*/
-//    delay(2000);
-//    demo.ADCNoiseTest();
-//    demo.AD5940_HSTIARcal(HSTIARTIA_160K, 149700);    
-
-    /* If you want to save noise data - optional but might contribute to noise */
-//    demo.saveDataNoise("03-21-24", "5k-ohms");
-
-
 }
 
 void loop() {
@@ -112,13 +132,9 @@ void loop() {
     
     /* Main Testing Code - also used for current draw as a standard sweep measurement */
     /* Start, Stop, NumPoints, Vbias, Vzero, Rcal, gain array, gain size, Excitation Gain, DAC Gain*/
-    demo.AD5940_TDD(100000, 0.15, 6, 0.0, 0.0, 9870, test, gainSize, 1, 1);
+    demo.AD5940_TDD(startFreq, endFreq, numPoints, biasVolt, zeroVolt, rcalVal, test, gainSize, extGain, dacGain);
     demo.runSweep(numCycles, delaySecs); // Run the Sweep
     demo.saveDataEIS("folder-name-here", "file-name-here");
-
-    /* Current Draw Code - (no sweep but set for measurement)*/
-//    demo.AD5940_TDD(startFreq, endFreq, 6, 0.0, 0.0, 9870, test, gainSize, 1, 1);
-//    demo.configureFrequency(startFreq);
 
     /* After Impedance Measurement - drive LED High and get ready to restart measurement */
     delay(500);
