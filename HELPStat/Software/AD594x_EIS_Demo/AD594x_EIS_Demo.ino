@@ -64,18 +64,21 @@ calHSTIA test[] = {
 /* Variables for function inputs */
 int gainSize = (int)sizeof(test) / sizeof(test[0]);
 
-uint32_t numCycles = 0; 
+uint32_t numCycles = 1; 
 uint32_t delaySecs = 0; 
 uint32_t numPoints = 6; 
 
-float startFreq = 100; 
-float endFreq = 0.15; 
+float startFreq = 150; 
+float endFreq = 1; 
 float biasVolt = 0.0; 
 float zeroVolt = 0.0; 
 float rcalVal = 9870; // Use the measured resistance of the chosen calibration resistor
 
 int extGain = 1; 
 int dacGain = 1; 
+
+String folderName = "folder-name-here"; 
+String fileName = "file-name-here"; 
 
 HELPStat demo;
 
@@ -134,7 +137,7 @@ void loop() {
     /* Start, Stop, NumPoints, Vbias, Vzero, Rcal, gain array, gain size, Excitation Gain, DAC Gain*/
     demo.AD5940_TDD(startFreq, endFreq, numPoints, biasVolt, zeroVolt, rcalVal, test, gainSize, extGain, dacGain);
     demo.runSweep(numCycles, delaySecs); // Run the Sweep
-    demo.saveDataEIS("folder-name-here", "file-name-here");
+    demo.saveDataEIS(folderName, fileName);
 
     /* After Impedance Measurement - drive LED High and get ready to restart measurement */
     delay(500);
