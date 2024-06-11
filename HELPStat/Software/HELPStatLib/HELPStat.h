@@ -41,6 +41,9 @@
 #include "SD.h"
 #include "FS.h"
 
+// Levenberg-Marquardt Functionality
+#include "lma.h"
+
 extern "C" {
     #include <ad5940.h>
     #include <Impedance.h>
@@ -251,6 +254,9 @@ class HELPStat {
         void sdAppend(char *output);
         void printData(void); 
         void saveDataEIS(String dirName, String fileName);
+
+        /* LMA for Rct / Rs Calculation */
+        std::vector<float> calculateResistors(float rct_estimate, float rs_estimate);
 
         /* Functions to test bias voltage */
         void AD5940_BiasCfg(float startFreq, float endFreq, uint32_t numPoints, float biasVolt, float zeroVolt, int delaySecs);

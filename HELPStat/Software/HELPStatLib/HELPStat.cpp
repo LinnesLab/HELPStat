@@ -1162,6 +1162,26 @@ void HELPStat::printData(void)
   Arduino's SPI library).
 */
 
+std::vector<float> HELPStat::calculateResistors(float rct_estimate, float rs_estimate) {
+  std::vector<float> Z_real;
+  std::vector<float> Z_imag;
+
+  // Should append each real and imaginary data point
+  for(uint32_t i = 0; i < _sweepCfg.SweepPoints; i++) {
+    for(uint32_t j = 0; j <= _numCycles; j++) {
+      impStruct eis;
+      eis = eisArr[i + (j * _sweepCfg.SweepPoints)];
+      Z_real.push_back(eis.real);
+      Z_imag.push_back(eis.imag);
+    }
+  }
+
+  float Rct = calculate_Rct(rct_estimate, rs_estimate, Z_real, Z_imag);
+  float Rs  = calculate_Rs(rct_estimate, rs_estimate, Z_real, Z_imag);
+
+  return({Rct, Rs});
+}
+
 void HELPStat::saveDataEIS(String dirName, String fileName)
 {
   String directory = "/" + dirName;
@@ -1196,7 +1216,7 @@ void HELPStat::saveDataEIS(String dirName, String fileName)
   {
     for(uint32_t i = 0; i <= _numCycles; i++)
     {
-      dataFile.print("Freq, Magnitude, Phase (rad), Phase (deg), Real, Imag,");
+      dataFile.print("Freq, Magnitude, Phase (rad), Phase (deg), Real, Imag");
     }
     dataFile.println("");
     for(uint32_t i = 0; i < _sweepCfg.SweepPoints; i++)
