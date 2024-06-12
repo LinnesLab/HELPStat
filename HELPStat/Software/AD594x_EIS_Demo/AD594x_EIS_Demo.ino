@@ -31,33 +31,55 @@
 
 #include "HELPStat.h"
 
-<<<<<<< HEAD
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
 
 #include <vector>
+#include <string>
 
-#define SERVICE_UUID              "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-#define CHARACTERISTIC_UUID_START "beb5483e-36e1-4688-b7f5-ea07361b26a8"
-#define CHARACTERISTIC_UUID_RCT   "a5d42ee9-0551-4a23-a1b7-74eea28aa083"
-#define CHARACTERISTIC_UUID_RS    "192fa626-1e5a-4018-8176-5debff81a6c6"
+#define SERVICE_UUID                    "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+#define CHARACTERISTIC_UUID_START       "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+#define CHARACTERISTIC_UUID_RCT         "a5d42ee9-0551-4a23-a1b7-74eea28aa083"
+#define CHARACTERISTIC_UUID_RS          "192fa626-1e5a-4018-8176-5debff81a6c6"
+#define CHARACTERISTIC_UUID_NUMCYCLES   "8117179a-b8ee-433c-96da-65816c5c92dd"
+#define CHARACTERISTIC_UUID_NUMPOINTS   "359a6d93-9007-41f6-bbbe-f92bc17db383"
+#define CHARACTERISTIC_UUID_STARTFREQ   "5b0210d0-cd21-4011-9882-db983ba7e1fc"
+#define CHARACTERISTIC_UUID_ENDFREQ     "3507abdc-2353-486b-a3d5-dd831ee4bb18"
+#define CHARACTERISTIC_UUID_RCALVAL     "4f7d237e-a358-439e-8771-4ab7f81473fa"
+
+#define CHARACTERISTIC_UUID_BIASVOLT    "62df1950-23f9-4acd-8473-61a421d4cf07"
+#define CHARACTERISTIC_UUID_ZEROVOLT    "60d57f7b-6e41-41e5-bd44-0e23638e90d2"
+#define CHARACTERISTIC_UUID_DELAYSECS   "57a7466e-c0e1-4f6e-aea4-99ef4f360d24"
+#define CHARACTERISTIC_UUID_EXTGAIN     "e17e690a-16e8-4c70-b958-73e41d4afff0"
+#define CHARACTERISTIC_UUID_DACGAIN     "36377d50-6ba7-4cc1-825a-42746c4028dc"
+#define CHARACTERISTIC_UUID_FOLDERNAME  "02193c1e-4afe-4211-b64f-e878e9d6c0a4"
+#define CHARACTERISTIC_UUID_FILENAME    "d07519f0-1c45-461a-9b8e-fcaad4e53f0c"
 
 BLEServer* pServer = NULL;
-BLECharacteristic* pCharacteristicStart = NULL;
-BLECharacteristic* pCharacteristicRct   = NULL;
-BLECharacteristic* pCharacteristicRs    = NULL;
+BLECharacteristic* pCharacteristicStart      = NULL;
+BLECharacteristic* pCharacteristicRct        = NULL;
+BLECharacteristic* pCharacteristicRs         = NULL;
+BLECharacteristic* pCharacteristicNumCycles  = NULL;
+BLECharacteristic* pCharacteristicNumPoints  = NULL;
+BLECharacteristic* pCharacteristicStartFreq  = NULL;
+BLECharacteristic* pCharacteristicEndFreq    = NULL;
+BLECharacteristic* pCharacteristicRcalVal    = NULL;
+
+BLECharacteristic* pCharacteristicBiasVolt   = NULL;
+BLECharacteristic* pCharacteristicZeroVolt   = NULL;
+BLECharacteristic* pCharacteristicDelaySecs  = NULL;
+BLECharacteristic* pCharacteristicExtGain    = NULL;
+BLECharacteristic* pCharacteristicDacGain    = NULL;
+BLECharacteristic* pCharacteristicFolderName = NULL;
+BLECharacteristic* pCharacteristicFileName   = NULL;
+
 bool deviceConnected = false;
-bool oldDeviceConnected = false;
 bool start_value     = false;
 bool old_start_value = false;
 
-hw_timer_t *bluetooth_timer = NULL;
-
-=======
 /* Reference constants for gain values - taken from AD5941.h library by Analog Devices */
->>>>>>> b0f63ea67e79873ed513cc41367d9fde3c61eda9
 //#define HSTIARTIA_200               0     /**< HSTIA Internal RTIA resistor 200  */
 //#define HSTIARTIA_1K                1     /**< HSTIA Internal RTIA resistor 1K   */
 //#define HSTIARTIA_5K                2     /**< HSTIA Internal RTIA resistor 5K   */
@@ -103,7 +125,6 @@ float rcalVal = 9870; // Use the measured resistance of the chosen calibration r
 int extGain = 1; 
 int dacGain = 1; 
 
-<<<<<<< HEAD
 float rct_estimate = 10000;
 float rs_estimate = 500;
 
@@ -112,26 +133,15 @@ HELPStat demo;
 class MyServerCallbacks: public BLEServerCallbacks {
     void onConnect(BLEServer* pServer) {
       deviceConnected = true;
+      Serial.println("Device Connected");
     };
 
     void onDisconnect(BLEServer* pServer) {
       deviceConnected = false;
-    }
+      pServer->startAdvertising();
+      Serial.println("Device Disconnected");
+    };
 };
-
-void IRAM_ATTR bluetooth(void) {
-  if (!deviceConnected && oldDeviceConnected) {
-    delay(500); // give the bluetooth stack the chance to get things ready
-    pServer->startAdvertising(); // restart advertising
-    Serial.println("start advertising");
-    oldDeviceConnected = deviceConnected;
-  }
-  // connecting
-  if (deviceConnected && !oldDeviceConnected) {
-    // do stuff here on connecting
-    oldDeviceConnected = deviceConnected;
-  }
-}
 
 void setup_bluetooth(void) {
   // Create the BLE Device
@@ -142,15 +152,13 @@ void setup_bluetooth(void) {
   pServer->setCallbacks(new MyServerCallbacks());
 
   // Create the BLE Service
-  BLEService *pService = pServer->createService(SERVICE_UUID);
+  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID),45,0);
 
   // Create a BLE Characteristic
   pCharacteristicStart = pService->createCharacteristic(
                       CHARACTERISTIC_UUID_START,
-                      BLECharacteristic::PROPERTY_READ   |
                       BLECharacteristic::PROPERTY_WRITE  |
-                      BLECharacteristic::PROPERTY_NOTIFY |
-                      BLECharacteristic::PROPERTY_INDICATE
+                      BLECharacteristic::PROPERTY_NOTIFY
                     );
   
   pCharacteristicRct = pService->createCharacteristic(
@@ -166,11 +174,97 @@ void setup_bluetooth(void) {
                       BLECharacteristic::PROPERTY_WRITE
                     );
 
+  pCharacteristicNumCycles = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_NUMCYCLES,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+
+  pCharacteristicNumPoints = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_NUMPOINTS,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+
+  pCharacteristicStartFreq = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_STARTFREQ,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+
+  pCharacteristicEndFreq = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_ENDFREQ,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    ); 
+
+  pCharacteristicRcalVal = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_RCALVAL,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+
+  pCharacteristicBiasVolt = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_BIASVOLT,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+  );
+
+  pCharacteristicZeroVolt = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_ZEROVOLT,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+  );
+
+  pCharacteristicDelaySecs = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_DELAYSECS,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+  );
+
+  pCharacteristicExtGain = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_EXTGAIN,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+  );
+
+  pCharacteristicDacGain = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_DACGAIN,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+  );
+
+  pCharacteristicFolderName = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_FOLDERNAME,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+  );
+
+  pCharacteristicFileName = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_FILENAME,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+  );
+
+
   // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
   // Create a BLE Descriptor
   pCharacteristicStart->addDescriptor(new BLE2902());
   pCharacteristicRct->addDescriptor(new BLE2902());
   pCharacteristicRs->addDescriptor(new BLE2902());
+  pCharacteristicNumCycles->addDescriptor(new BLE2902());
+  pCharacteristicNumPoints->addDescriptor(new BLE2902());
+  pCharacteristicStartFreq->addDescriptor(new BLE2902());
+  pCharacteristicEndFreq->addDescriptor(new BLE2902());
+  pCharacteristicRcalVal->addDescriptor(new BLE2902());
+
+  pCharacteristicBiasVolt->addDescriptor(new BLE2902());
+  pCharacteristicZeroVolt->addDescriptor(new BLE2902());
+  pCharacteristicDelaySecs->addDescriptor(new BLE2902());
+  pCharacteristicExtGain->addDescriptor(new BLE2902());
+  pCharacteristicDacGain->addDescriptor(new BLE2902());
+  pCharacteristicFolderName->addDescriptor(new BLE2902());
+  pCharacteristicFileName->addDescriptor(new BLE2902());
 
   // Start the service
   pService->start();
@@ -178,34 +272,24 @@ void setup_bluetooth(void) {
   // Start advertising
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID);
-  pAdvertising->setScanResponse(true);
+  pAdvertising->setScanResponse(false);
   pAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
   pAdvertising->setMinPreferred(0x12);
   BLEDevice::startAdvertising();
   Serial.println("Waiting a client connection to notify...");
 }
 
+/* Initializing Analog Pins and Potentiostat pins */
+String folderName = "folder-name-here"; 
+String fileName = "file-name-here"; 
+
 void setup() {
   Serial.begin(115200);
 
   // Timer for Bluetooth Communication
   setup_bluetooth();
-  bluetooth_timer = timerBegin(0, 4000, true);
-  timerAttachInterrupt(bluetooth_timer, &bluetooth, true);
-  timerAlarmWrite(bluetooth_timer, 2000, true);
-  timerAlarmEnable(bluetooth_timer);
-
-  /* Initializing Analog Pins and Potentiostat pins */
-=======
-String folderName = "folder-name-here"; 
-String fileName = "file-name-here"; 
-
-HELPStat demo;
-
-void setup() {
   
   /* Optional inputs to establish pins for button and LEDs*/
->>>>>>> b0f63ea67e79873ed513cc41367d9fde3c61eda9
   pinMode(BUTTON, INPUT); 
   pinMode(LEDPIN, OUTPUT);
   digitalWrite(LEDPIN, HIGH); // Initial LED State
@@ -239,7 +323,6 @@ void setup() {
   
   /* Start, Stop, Num points per decade, gain size, and gain array */
 //    demo.AD5940_Main(100000, 0.1, 6, gainSize, test);
-<<<<<<< HEAD
 
   /* Testing ADC Voltage Readings */
 
@@ -253,8 +336,6 @@ void setup() {
 
     /* If you want to save noise data - optional but might contribute to noise */
 //    demo.saveDataNoise("03-21-24", "5k-ohms");
-=======
->>>>>>> b0f63ea67e79873ed513cc41367d9fde3c61eda9
 }
 
 void loop() {
@@ -272,6 +353,53 @@ void loop() {
     std::string rx_rs_str  = pCharacteristicRs->getValue();
     if(rx_rs_str.length() > 0)
       rs_estimate  = std::stof(rx_rs_str);
+
+    std::string numCycles_str = pCharacteristicNumCycles->getValue();
+    if(numCycles_str.length() > 0)
+      numCycles = std::stoul(numCycles_str);
+
+    std::string numPoints_str = pCharacteristicNumPoints->getValue();
+    if(numPoints_str.length() > 0)
+      numPoints = std::stoul(numPoints_str);
+
+    std::string startFreq_str = pCharacteristicStartFreq->getValue();
+    if(startFreq_str.length() > 0)
+      startFreq = std::stof(startFreq_str);
+
+    std::string endFreq_str   = pCharacteristicEndFreq->getValue();
+    if(endFreq_str.length() > 0)
+      endFreq = std::stof(endFreq_str);
+
+    std::string rcalVal_str   = pCharacteristicRcalVal->getValue();
+    if(rcalVal_str.length() > 0)
+      rcalVal = std::stof(rcalVal_str);
+
+
+
+
+    std::string biasvolt_str   = pCharacteristicBiasVolt->getValue();
+    if(biasvolt_str.length() > 0)
+      biasVolt = std::stof(biasvolt_str);
+
+    std::string zeroVolt_str   = pCharacteristicZeroVolt->getValue();
+    if(zeroVolt_str.length() > 0)
+      zeroVolt = std::stof(zeroVolt_str);
+
+    std::string delaySecs_str   = pCharacteristicDelaySecs->getValue();
+    if(delaySecs_str.length() > 0)
+      delaySecs = std::stoul(delaySecs_str);
+
+    std::string extGain_str   = pCharacteristicExtGain->getValue();
+    if(extGain_str.length() > 0)
+      extGain = std::stoi(extGain_str);
+
+    std::string dacGain_str   = pCharacteristicDacGain->getValue();
+    if(dacGain_str.length() > 0)
+      dacGain = std::stoi(dacGain_str);
+
+    folderName = String((pCharacteristicFolderName->getValue()).c_str());
+
+    fileName = String((pCharacteristicFileName->getValue()).c_str());
   }while(!start_value || old_start_value == start_value || digitalRead(BUTTON));
   
   // int buttonStatus = digitalRead(BUTTON); 
@@ -282,29 +410,85 @@ void loop() {
   digitalWrite(LEDPIN, LOW);
   delay(1000);
   Serial.println("Button pressed - starting measurements!");
+
+  // NumCycles
+  Serial.print("NumCycles: ");
+  Serial.println(numCycles);
+
+  // NumPoints
+  Serial.print("NumPoints: ");
+  Serial.println(numPoints);
+
+  // StartFreq
+  Serial.print("Start Freq: ");
+  Serial.println(startFreq);
+
+  // EndFreq
+  Serial.print("End Freq: ");
+  Serial.println(endFreq);
+
+  // Rcalval
+  Serial.print("Rcal: ");
+  Serial.println(rcalVal);
+
+  //BiasVolt
+  Serial.print("Bias Volt: ");
+  Serial.println(biasVolt);
+
+  //ZeroVolt
+  Serial.print("Zero Volt: ");
+  Serial.println(zeroVolt);
+
+  //DelaySecs
+  Serial.print("Delay Secs: ");
+  Serial.println(delaySecs);
+
+  //ExtGain
+  Serial.print("External Gain: ");
+  Serial.println(extGain);
+
+  //DacGain
+  Serial.print("DAC Gain: ");
+  Serial.println(dacGain);
+
+  //FolderName
+  Serial.print("Folder Name: ");
+  Serial.println(folderName);
+
+  //FileName
+  Serial.print("File Name: ");
+  Serial.println(fileName);
+
   blinkLED(3, 0);
     
-<<<<<<< HEAD
   /* Main Testing Code - also used for current draw as a standard sweep measurement */
   /* Start, Stop, NumPoints, Vbias, Vzero, Rcal, gain array, gain size, Excitation Gain, DAC Gain*/
-  demo.AD5940_TDD(100000, 0.15, 6, 0.0, 0.0, 9870, test, gainSize, 1, 1);
+  // demo.AD5940_TDD(100000, 0.15, 6, 0.0, 0.0, 9870, test, gainSize, 1, 1);
+  demo.AD5940_TDD(startFreq, endFreq, numPoints, biasVolt, zeroVolt, rcalVal, test, gainSize, extGain, dacGain);
   demo.runSweep(numCycles, delaySecs); // Run the Sweep
   std::vector<float> resistors = demo.calculateResistors(rct_estimate, rs_estimate);
   Serial.print(resistors[0]);
   Serial.print(",");
   Serial.println(resistors[1]);
+
+  static char buffer[10];
+  dtostrf(resistors[0],4,3,buffer);
+  pCharacteristicRct->setValue(buffer);
+  pCharacteristicRct->notify();
+  dtostrf(resistors[1],4,3,buffer);
+  pCharacteristicRs->setValue(buffer);
+  pCharacteristicRs->notify();
+
   demo.saveDataEIS("folder-name-here", "file-name-here");
 
     /* Current Draw Code - (no sweep but set for measurement)*/
 //    demo.AD5940_TDD(startFreq, endFreq, 6, 0.0, 0.0, 9870, test, gainSize, 1, 1);
 //    demo.configureFrequency(startFreq);
-=======
     /* Main Testing Code - also used for current draw as a standard sweep measurement */
     /* Start, Stop, NumPoints, Vbias, Vzero, Rcal, gain array, gain size, Excitation Gain, DAC Gain*/
-    demo.AD5940_TDD(startFreq, endFreq, numPoints, biasVolt, zeroVolt, rcalVal, test, gainSize, extGain, dacGain);
-    demo.runSweep(numCycles, delaySecs); // Run the Sweep
-    demo.saveDataEIS(folderName, fileName);
->>>>>>> b0f63ea67e79873ed513cc41367d9fde3c61eda9
+    // demo.AD5940_TDD(startFreq, endFreq, numPoints, biasVolt, zeroVolt, rcalVal, test, gainSize, extGain, dacGain);
+    // demo.runSweep(numCycles, delaySecs); // Run the Sweep
+    // demo.saveDataEIS(folderName, fileName);
 
     /* After Impedance Measurement - drive LED High and get ready to restart measurement */
   delay(500);
