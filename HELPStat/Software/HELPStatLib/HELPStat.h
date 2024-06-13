@@ -44,6 +44,12 @@
 // Levenberg-Marquardt Functionality
 #include "lma.h"
 
+// BLE
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+
 extern "C" {
     #include <ad5940.h>
     #include <Impedance.h>
@@ -164,6 +170,24 @@ extern "C" {
 #define DAC12BITVOLT_1LSB   (2200.0f/4095)  //mV
 #define DAC6BITVOLT_1LSB    (DAC12BITVOLT_1LSB*64)  //mV
 
+// BLE Characteristics
+#define SERVICE_UUID                    "4fafc201-1fb5-459e-8fcc-c5c9c331914b" // Device UUID
+#define CHARACTERISTIC_UUID_START       "beb5483e-36e1-4688-b7f5-ea07361b26a8" // UUIDs for different parameters
+#define CHARACTERISTIC_UUID_RCT         "a5d42ee9-0551-4a23-a1b7-74eea28aa083"
+#define CHARACTERISTIC_UUID_RS          "192fa626-1e5a-4018-8176-5debff81a6c6"
+#define CHARACTERISTIC_UUID_NUMCYCLES   "8117179a-b8ee-433c-96da-65816c5c92dd"
+#define CHARACTERISTIC_UUID_NUMPOINTS   "359a6d93-9007-41f6-bbbe-f92bc17db383"
+#define CHARACTERISTIC_UUID_STARTFREQ   "5b0210d0-cd21-4011-9882-db983ba7e1fc"
+#define CHARACTERISTIC_UUID_ENDFREQ     "3507abdc-2353-486b-a3d5-dd831ee4bb18"
+#define CHARACTERISTIC_UUID_RCALVAL     "4f7d237e-a358-439e-8771-4ab7f81473fa"
+#define CHARACTERISTIC_UUID_BIASVOLT    "62df1950-23f9-4acd-8473-61a421d4cf07"
+#define CHARACTERISTIC_UUID_ZEROVOLT    "60d57f7b-6e41-41e5-bd44-0e23638e90d2"
+#define CHARACTERISTIC_UUID_DELAYSECS   "57a7466e-c0e1-4f6e-aea4-99ef4f360d24"
+#define CHARACTERISTIC_UUID_EXTGAIN     "e17e690a-16e8-4c70-b958-73e41d4afff0"
+#define CHARACTERISTIC_UUID_DACGAIN     "36377d50-6ba7-4cc1-825a-42746c4028dc"
+#define CHARACTERISTIC_UUID_FOLDERNAME  "02193c1e-4afe-4211-b64f-e878e9d6c0a4"
+#define CHARACTERISTIC_UUID_FILENAME    "d07519f0-1c45-461a-9b8e-fcaad4e53f0c"
+
 typedef struct _impStruct {
     float freq;
     float magnitude; 
@@ -190,37 +214,88 @@ typedef struct _adcStruct {
 
 class HELPStat {
     private:
+        class MyServerCallbacks: public BLEServerCallbacks { // BLE Callback (just says "Device Connected" or "Device Disconnected")
+            void onConnect(BLEServer* pServer) {
+                bool deviceConnected = true;
+                Serial.println("Device Connected");
+            };
+
+            void onDisconnect(BLEServer* pServer) {
+                bool deviceConnected = false;
+                pServer->startAdvertising();
+                Serial.println("Device Disconnected");
+            };
+        };
+
         uint32_t _waitClcks; // clock cycles to wait for
         SoftSweepCfg_Type _sweepCfg;
         float _currentFreq; 
-        float _startFreq; 
-        float _endFreq;
+        float _startFreq = 100000; // Initialize w/ default values 
+        float _endFreq   = 1;
         bool _isSD;
+
+        // Rct/Rs estimates
+        float _rct_estimate = 5000; // Initialize w/ default values 
+        float _rs_estimate  = 50;
 
         // Array for EIS data
         impStruct eisArr[ARRAY_SIZE];
 
         // Keeping track of cycles 
-        uint32_t _numCycles; 
-        uint32_t _currentCycle;  
+        uint32_t _numCycles = 1; // Initialize w/ default values  
+        uint32_t _currentCycle;
+        uint32_t _numPoints = 6; // Initialize w/ default values 
 
         // Gain Calibration Array
         calHSTIA _gainArr[ARRAY_SIZE];
         int _arrHSTIA[ARRAY_SIZE];
         uint32_t _gainArrSize; 
 
-        int _extGain; 
-        int _dacGain;
-        
+        int _extGain = 1; // Initialize w/ default values 
+        int _dacGain = 1;
 
         // Bias voltage for LPDAC 
-        float _biasVolt; 
+        float _biasVolt = 0.0;  // Initialize w/ default values  
+        float _zeroVolt = 0.0;
         
         // Calibration Resistor 
-        float _rcalVal;
+        float _rcalVal  = 1000; // Initialize w/ default values 
+
+        // Delay
+        uint32_t _delaySecs = 0.0; // Initialize w/ default values 
+
+        // Calculated Rct/Rs
+        float _calculated_Rct;
+        float _calculated_Rs;     
 
         // Noise array
         adcStruct _noiseArr[NOISE_ARRAY];
+
+        // Bluetooth Characteristics
+        BLEServer* pServer = NULL;
+        BLECharacteristic* pCharacteristicStart      = NULL;
+        BLECharacteristic* pCharacteristicRct        = NULL;
+        BLECharacteristic* pCharacteristicRs         = NULL;
+        BLECharacteristic* pCharacteristicNumCycles  = NULL;
+        BLECharacteristic* pCharacteristicNumPoints  = NULL;
+        BLECharacteristic* pCharacteristicStartFreq  = NULL;
+        BLECharacteristic* pCharacteristicEndFreq    = NULL;
+        BLECharacteristic* pCharacteristicRcalVal    = NULL;
+        BLECharacteristic* pCharacteristicBiasVolt   = NULL;
+        BLECharacteristic* pCharacteristicZeroVolt   = NULL;
+        BLECharacteristic* pCharacteristicDelaySecs  = NULL;
+        BLECharacteristic* pCharacteristicExtGain    = NULL;
+        BLECharacteristic* pCharacteristicDacGain    = NULL;
+        BLECharacteristic* pCharacteristicFolderName = NULL;
+        BLECharacteristic* pCharacteristicFileName   = NULL;
+
+        // bool deviceConnected = false;
+        bool start_value     = false;
+        bool old_start_value = false;
+
+        // File and FolderNames
+        String folderName = "folder-name-here"; 
+        String fileName = "file-name-here"; 
 
     public:
         HELPStat();
@@ -234,7 +309,10 @@ class HELPStat {
         void AD5940_Main(float startFreq, float endFreq, uint32_t numPoints, uint32_t gainArrSize, calHSTIA* gainArr);
 
         /* 10-27-2023 - IMPEDANCE NO SEQUENCER - our methods for testing */
+        // NOTE: Two overloads
+        void AD5940_TDD(calHSTIA *gainArr, int gainArrSize);
         void AD5940_TDD(float startFreq, float endFreq, uint32_t numPoints, float biasVolt, float zeroVolt, float rcalVal, calHSTIA *gainArr, int gainArrSize, int extGain, int dacGain); // works
+        
         void AD5940_DFTMeasure(void); // works
         void pollDFT(int32_t* pReal, int32_t* pImage); // works
         void getDFT(int32_t* pReal, int32_t* pImage); // works
@@ -242,6 +320,7 @@ class HELPStat {
         /* Helper Functions */
         void getMagPhase(int32_t real, int32_t image, float* pMag, float* pPhase); // works 
         void logSweep(SoftSweepCfg_Type *pSweepCfg, float *pNextFreq); // works
+        void runSweep(void);
         void runSweep(uint32_t numCycles, uint32_t delaySecs); // sweep works now and cycles correctly 
         void resetSweep(SoftSweepCfg_Type *pSweepCfg, float *pNextFreq); // works
         
@@ -279,7 +358,13 @@ class HELPStat {
         void PGACal(void);
 
         void saveDataNoise(String dirName, String fileName);
-        void AD5940_HSTIARcal(int rHSTIA, float rcalVal);       
+        void AD5940_HSTIARcal(int rHSTIA, float rcalVal);
+
+        void BLE_setup(void);
+        void BLE_settings(void);
+        void BLE_transmitResistors(void);
+
+        void print_settings(void);       
 };  
 
 #endif

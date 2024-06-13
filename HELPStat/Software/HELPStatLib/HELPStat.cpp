@@ -275,6 +275,306 @@ Most will stay constant but some will change depending on frequency
 frequencies and subject to noise, but frequency at 200 kHz and 0.1 Hz was accurate
 and bias works. 
 */
+// NOTE: 2 overloads of AD5940_TDD
+void HELPStat::AD5940_TDD(calHSTIA *gainArr, int gainArrSize) {
+  // SETUP Cfgs
+  CLKCfg_Type clk_cfg;
+  AGPIOCfg_Type gpio_cfg;
+  ClksCalInfo_Type clks_cal;
+  LPAmpCfg_Type LpAmpCfg;
+  
+  // DFT / ADC / WG / HSLoop Cfgs
+  AFERefCfg_Type aferef_cfg;
+  HSLoopCfg_Type HsLoopCfg;
+  DSPCfg_Type dsp_cfg;
+
+  float sysClkFreq = 16000000.0; // 16 MHz
+  float adcClkFreq = 16000000.0; // 16 MHz
+  float sineVpp = 200.0; // 200 mV 
+
+  /* Configuring the Gain Array */
+  _gainArrSize = gainArrSize;
+  printf("Gain array size: %d\n", _gainArrSize);
+  for(uint32_t i = 0; i < _gainArrSize; i++)
+    _gainArr[i] = gainArr[i];
+
+  /* Use hardware reset */
+  AD5940_HWReset();
+  AD5940_Initialize();
+
+  /* Platform configuration */
+  /* Step1. Configure clock - NEED THIS */
+  clk_cfg.ADCClkDiv = ADCCLKDIV_1; // Clock source divider - ADC
+  clk_cfg.ADCCLkSrc = ADCCLKSRC_HFOSC; // Enables internal high frequency 16/32 MHz clock as source
+  clk_cfg.SysClkDiv = SYSCLKDIV_1; // Clock source divider - System
+  clk_cfg.SysClkSrc = SYSCLKSRC_HFOSC; // Enables internal high frequency 16/32 MHz clock as source 
+  clk_cfg.HfOSC32MHzMode = bFALSE; // Sets it to 16 MHz
+  clk_cfg.HFOSCEn = bTRUE; // Enables the internal 16 / 32 MHz source
+  clk_cfg.HFXTALEn = bFALSE; // Disables any need for external clocks
+  clk_cfg.LFOSCEn = bTRUE; // Enables 32 kHz clock for timing / wakeups
+  AD5940_CLKCfg(&clk_cfg); // Configures the clock
+  Serial.println("Clock setup successfully.");
+
+  /* Step3. Interrupt controller */
+  AD5940_INTCCfg(AFEINTC_1, AFEINTSRC_ALLINT, bTRUE);   /* Enable all interrupt in INTC1, so we can check INTC flags */
+  AD5940_INTCClrFlag(AFEINTSRC_ALLINT); // Clears all INT flags
+
+  /* Set INT0 source to be DFT READY */
+  AD5940_INTCCfg(AFEINTC_0, AFEINTSRC_DFTRDY, bTRUE); 
+  AD5940_INTCClrFlag(AFEINTSRC_ALLINT); // clears all flags 
+  Serial.println("INTs setup successfully.");
+
+  /* Step4: Reconfigure GPIO */
+  gpio_cfg.FuncSet = GP0_INT;
+
+  gpio_cfg.InputEnSet = 0; // Disables any GPIOs as inputs
+  gpio_cfg.OutputEnSet = AGPIO_Pin0; // Enables GPIOs as outputs
+
+  gpio_cfg.OutVal = 0; // Value for the output 
+  gpio_cfg.PullEnSet = 0; // Disables any GPIO pull-ups / Pull-downs
+
+  AD5940_AGPIOCfg(&gpio_cfg); // Configures the GPIOs
+  Serial.println("GPIOs setup successfully.");
+
+  /* CONFIGURING FOR DFT */
+  // AFE Configuration 
+  AD5940_AFECtrlS(AFECTRL_ALL, bFALSE);  /* Initializing to disabled state */
+
+  // Enabling high power bandgap since we're using High Power DAC
+  // Enables operation at higher frequencies 
+  aferef_cfg.HpBandgapEn = bTRUE;
+
+  aferef_cfg.Hp1V1BuffEn = bTRUE; // Enables 1v1 buffer
+  aferef_cfg.Hp1V8BuffEn = bTRUE; // Enables 1v8 buffer
+
+  /* Not going to discharge capacitors - haven't seen this ever used */
+  aferef_cfg.Disc1V1Cap = bFALSE;
+  aferef_cfg.Disc1V8Cap = bFALSE;
+
+  /* Disabling buffers and current limits*/
+  aferef_cfg.Hp1V8ThemBuff = bFALSE;
+  aferef_cfg.Hp1V8Ilimit = bFALSE;
+
+  /* Disabling low power buffers */
+  aferef_cfg.Lp1V1BuffEn = bFALSE;
+  aferef_cfg.Lp1V8BuffEn = bFALSE;
+
+  /* LP reference control - turn off if no bias */
+  if((_biasVolt == 0.0f) && (_zeroVolt == 0.0f))
+  {
+    aferef_cfg.LpBandgapEn = bFALSE;
+    aferef_cfg.LpRefBufEn = bFALSE;
+    printf("No bias today!\n");
+  }
+  else
+  {
+    aferef_cfg.LpBandgapEn = bTRUE;
+    aferef_cfg.LpRefBufEn = bTRUE;
+    printf("We have bias!\n");
+  }
+
+  /* Doesn't enable boosting buffer current */
+  aferef_cfg.LpRefBoostEn = bFALSE;
+  AD5940_REFCfgS(&aferef_cfg);	// Configures the AFE 
+  Serial.println("AFE setup successfully.");
+  
+  /* Disconnect SE0 from LPTIA - double check this too */
+	LpAmpCfg.LpAmpPwrMod = LPAMPPWR_NORM;
+  LpAmpCfg.LpPaPwrEn = bFALSE; //bTRUE
+  LpAmpCfg.LpTiaPwrEn = bFALSE; //bTRUE
+  LpAmpCfg.LpTiaRf = LPTIARF_1M;
+  LpAmpCfg.LpTiaRload = LPTIARLOAD_100R;
+  LpAmpCfg.LpTiaRtia = LPTIARTIA_OPEN; /* Disconnect Rtia to avoid RC filter discharge */
+  LpAmpCfg.LpTiaSW = LPTIASW(7)|LPTIASW(8)|LPTIASW(12)|LPTIASW(13); 
+	AD5940_LPAMPCfgS(&LpAmpCfg);
+  Serial.println("SE0 disconnected from LPTIA.");
+  
+  // Configuring High Speed Loop (high power loop)
+  /* Vpp * BufGain * DacGain */
+  // HsLoopCfg.HsDacCfg.ExcitBufGain = EXCITBUFGAIN_0P25;
+  // HsLoopCfg.HsDacCfg.HsDacGain = HSDACGAIN_0P2;
+
+  HsLoopCfg.HsDacCfg.ExcitBufGain = _extGain;
+  HsLoopCfg.HsDacCfg.HsDacGain = _dacGain;
+
+  /* For low power / frequency measurements use 0x1B, o.w. 0x07 */
+  HsLoopCfg.HsDacCfg.HsDacUpdateRate = 0x1B;
+  HsLoopCfg.HsTiaCfg.DiodeClose = bFALSE;
+
+  /* Assuming no bias - default to 1V1 bias */
+  if((_biasVolt == 0.0f) && (_zeroVolt == 0.0f))
+  {
+    HsLoopCfg.HsTiaCfg.HstiaBias = HSTIABIAS_1P1;
+    printf("HSTIA bias set to 1.1V.\n");
+  }
+  else 
+  {
+    HsLoopCfg.HsTiaCfg.HstiaBias = HSTIABIAS_VZERO0;
+    printf("HSTIA bias set to Vzero.\n");
+  }
+
+  /* Sets feedback capacitor on HSTIA */
+  HsLoopCfg.HsTiaCfg.HstiaCtia = 31; /* 31pF + 2pF */
+
+  /* No load and RTIA on the D Switch*/
+  HsLoopCfg.HsTiaCfg.HstiaDeRload = HSTIADERLOAD_OPEN;
+  HsLoopCfg.HsTiaCfg.HstiaDeRtia = HSTIADERTIA_OPEN;
+
+  /* Assuming low frequency measurement */
+  HsLoopCfg.HsTiaCfg.HstiaRtiaSel = HSTIARTIA_40K;
+
+  HsLoopCfg.SWMatCfg.Dswitch = SWD_CE0;       // Connects WG to CE0
+  HsLoopCfg.SWMatCfg.Pswitch = SWP_RE0;       // Connects positive input to RE0
+  HsLoopCfg.SWMatCfg.Nswitch = SWN_SE0;       // Connects negative input to SE0
+  HsLoopCfg.SWMatCfg.Tswitch = SWT_SE0LOAD|SWT_TRTIA;   // Connects SEO to HSTIA via SE0Load
+
+  _currentFreq = _startFreq;
+  HsLoopCfg.WgCfg.WgType = WGTYPE_SIN;
+  HsLoopCfg.WgCfg.GainCalEn = bTRUE;          // Gain calibration
+  HsLoopCfg.WgCfg.OffsetCalEn = bTRUE;        // Offset calibration
+  printf("Current Freq: %f\n", _currentFreq);
+  HsLoopCfg.WgCfg.SinCfg.SinFreqWord = AD5940_WGFreqWordCal(_currentFreq, sysClkFreq);
+  HsLoopCfg.WgCfg.SinCfg.SinAmplitudeWord = (uint32_t)((sineVpp/800.0f)*2047 + 0.5f);
+  HsLoopCfg.WgCfg.SinCfg.SinOffsetWord = 0;
+  HsLoopCfg.WgCfg.SinCfg.SinPhaseWord = 0;
+  AD5940_HSLoopCfgS(&HsLoopCfg);
+  Serial.println("HS Loop configured successfully");
+  
+  /* Configuring Sweep Functionality */
+  _sweepCfg.SweepEn = bTRUE; 
+  _sweepCfg.SweepLog = bTRUE;
+  _sweepCfg.SweepIndex = 0; 
+  _sweepCfg.SweepStart = _startFreq; 
+  _sweepCfg.SweepStop = _endFreq;
+  
+  // Defaulting to a logarithmic sweep. Works both upwards and downwards
+  if(_startFreq > _endFreq) _sweepCfg.SweepPoints = (uint32_t)(1.5 + (log10(_startFreq) - log10(_endFreq)) * (_numPoints)) - 1;
+  else _sweepCfg.SweepPoints = (uint32_t)(1.5 + (log10(_endFreq) - log10(_startFreq)) * (_numPoints)) - 1;
+  printf("Number of points: %d\n", _sweepCfg.SweepPoints);
+  Serial.println("Sweep configured successfully.");
+
+   /* Configuring LPDAC if necessary */
+  if((_biasVolt != 0.0f) || (_zeroVolt != 0.0f))
+  {
+    LPDACCfg_Type lpdac_cfg;
+    
+    lpdac_cfg.LpdacSel = LPDAC0;
+    lpdac_cfg.LpDacVbiasMux = LPDACVBIAS_12BIT; /* Use Vbias to tune BiasVolt. */
+    lpdac_cfg.LpDacVzeroMux = LPDACVZERO_6BIT;  /* Vbias-Vzero = BiasVolt */
+
+    // Uses 2v5 as a reference, can set to AVDD
+    lpdac_cfg.LpDacRef = LPDACREF_2P5;
+    lpdac_cfg.LpDacSrc = LPDACSRC_MMR;      /* Use MMR data, we use LPDAC to generate bias voltage for LPTIA - the Vzero */
+    lpdac_cfg.PowerEn = bTRUE;              /* Power up LPDAC */
+    /* 
+      Default bias case - centered around Vzero = 1.1V
+      This works decently well. Error seems to increase as you go higher in bias.
+     */
+    if(_zeroVolt == 0.0f)
+    {
+      // Edge cases 
+      if(_biasVolt<-1100.0f) _biasVolt = -1100.0f + DAC12BITVOLT_1LSB;
+      if(_biasVolt> 1100.0f) _biasVolt = 1100.0f - DAC12BITVOLT_1LSB;
+      
+      /* Bit conversion from voltage */
+      // Converts the bias voltage to a data bit - uses the 1100 to offset it with Vzero
+      lpdac_cfg.DacData6Bit = 0x40 >> 1;            /* Set Vzero to middle scale - sets Vzero to 1.1V */
+      lpdac_cfg.DacData12Bit = (uint16_t)((_biasVolt + 1100.0f)/DAC12BITVOLT_1LSB);
+    }
+    else
+    {
+      /* 
+        Working decently well now.
+      */
+      lpdac_cfg.DacData6Bit = (uint32_t)((_zeroVolt-200)/DAC6BITVOLT_1LSB);
+      lpdac_cfg.DacData12Bit = (int32_t)((_biasVolt)/DAC12BITVOLT_1LSB) + (lpdac_cfg.DacData6Bit * 64);
+      if(lpdac_cfg.DacData12Bit < lpdac_cfg.DacData6Bit * 64) lpdac_cfg.DacData12Bit--; // compensation as per datasheet 
+    } 
+    lpdac_cfg.DataRst = bFALSE;      /* Do not reset data register */
+    // Allows for measuring of Vbias and Vzero voltages and connects them to LTIA, LPPA, and HSTIA
+    lpdac_cfg.LpDacSW = LPDACSW_VBIAS2LPPA|LPDACSW_VBIAS2PIN|LPDACSW_VZERO2LPTIA|LPDACSW_VZERO2PIN|LPDACSW_VZERO2HSTIA;
+    AD5940_LPDACCfgS(&lpdac_cfg);
+    Serial.println("LPDAC configured successfully.");
+  }
+
+  // /* Sets the input of the ADC to the output of the HSTIA */
+  dsp_cfg.ADCBaseCfg.ADCMuxN = ADCMUXN_HSTIA_N;
+  dsp_cfg.ADCBaseCfg.ADCMuxP = ADCMUXP_HSTIA_P;
+
+  /* Programmable gain array for the ADC */
+  dsp_cfg.ADCBaseCfg.ADCPga = ADCPGA_1;
+  // dsp_cfg.ADCBaseCfg.ADCPga = ADCPGA_2;
+  
+  /* Disables digital comparator functionality */
+  memset(&dsp_cfg.ADCDigCompCfg, 0, sizeof(dsp_cfg.ADCDigCompCfg));
+  
+  /* Is this actually being used? */
+  dsp_cfg.ADCFilterCfg.ADCAvgNum = ADCAVGNUM_16; // Impedance example uses 16 
+  dsp_cfg.ADCFilterCfg.ADCRate = ADCRATE_800KHZ;	/* Tell filter block clock rate of ADC*/
+
+  dsp_cfg.ADCFilterCfg.ADCRate = ADCRATE_1P6MHZ;	/* Tell filter block clock rate of ADC*/
+  dsp_cfg.ADCFilterCfg.ADCSinc2Osr = ADCSINC2OSR_22; // Oversampling ratio for SINC2
+  dsp_cfg.ADCFilterCfg.ADCSinc3Osr = ADCSINC3OSR_2; // Oversampling ratio for SINC3
+  /* Using Recommended OSR of 4 for SINC3 */
+  // dsp_cfg.ADCFilterCfg.ADCSinc3Osr = ADCSINC3OSR_4; // Oversampling ratio for SINC3
+
+  dsp_cfg.ADCFilterCfg.BpNotch = bTRUE; // Bypasses Notch filter
+  dsp_cfg.ADCFilterCfg.BpSinc3 = bFALSE; // Doesn't bypass SINC3
+  dsp_cfg.ADCFilterCfg.Sinc2NotchEnable = bTRUE; // Enables SINC2 filter
+
+  dsp_cfg.DftCfg.DftNum = DFTNUM_16384; // Max number of DFT points
+  dsp_cfg.DftCfg.DftSrc = DFTSRC_SINC3; // Sets DFT source to SINC3
+  dsp_cfg.DftCfg.HanWinEn = bTRUE;  // Enables HANNING WINDOW - recommended to always be on 
+  
+  /* Disables STAT block */
+  memset(&dsp_cfg.StatCfg, 0, sizeof(dsp_cfg.StatCfg));
+  
+  AD5940_DSPCfgS(&dsp_cfg); // Sets the DFT 
+  Serial.println("DSP configured successfully.");
+
+  /* Calculating Clock Cycles to wait given DFT settings */
+  clks_cal.DataType = DATATYPE_DFT;
+  clks_cal.DftSrc = DFTSRC_SINC3; // Source of DFT
+  clks_cal.DataCount = 1L<<(DFTNUM_16384+2); /* 2^(DFTNUMBER+2) */
+  clks_cal.ADCSinc2Osr = ADCSINC2OSR_22;
+  clks_cal.ADCSinc3Osr = ADCSINC3OSR_2;
+  clks_cal.ADCAvgNum = ADCAVGNUM_16;
+  clks_cal.RatioSys2AdcClk = sysClkFreq / adcClkFreq; // Same ADC / SYSTEM CLCK FREQ
+  AD5940_ClksCalculate(&clks_cal, &_waitClcks);
+
+  /* Clears any interrupts just in case */
+  AD5940_ClrMCUIntFlag();
+  AD5940_INTCClrFlag(AFEINTSRC_DFTRDY);
+
+  /* Do I need to include AFECTRL_HPREFPWR? It's the only one not here. */
+
+   // Added bias option conditionally 
+  if((_biasVolt == 0.0f) && (_zeroVolt == 0.0f))
+  {
+    AD5940_AFECtrlS(AFECTRL_HSTIAPWR|AFECTRL_INAMPPWR|AFECTRL_EXTBUFPWR|\
+                  AFECTRL_WG|AFECTRL_DACREFPWR|AFECTRL_HSDACPWR|\
+                  AFECTRL_SINC2NOTCH, bTRUE);
+    Serial.println("No bias applied.");
+  }
+  else
+  {
+    /* 
+      Also powers the DC offset buffers that's used with LPDAC (Vbias) 
+      Buffers need to be powered up here but aren't turned off in measurement like 
+      the rest. This is to ensure the LPDAC and bias stays on the entire time.
+    */
+    AD5940_AFECtrlS(AFECTRL_HSTIAPWR|AFECTRL_INAMPPWR|AFECTRL_EXTBUFPWR|\
+                  AFECTRL_WG|AFECTRL_DACREFPWR|AFECTRL_HSDACPWR|\
+                  AFECTRL_SINC2NOTCH|AFECTRL_DCBUFPWR, bTRUE);
+    Serial.println("Bias is applied.");
+  }
+
+  // AD5940_SleepKeyCtrlS(SLPKEY_LOCK); // Disables Sleep Mode 
+
+  Serial.println("Everything turned on.");
+  printf("Number of points to sweep: %d\n", _sweepCfg.SweepPoints);
+  printf("Bias: %f, Zero: %f\n", _biasVolt, _zeroVolt);
+}
 void HELPStat::AD5940_TDD(float startFreq, float endFreq, uint32_t numPoints, float biasVolt, float zeroVolt, float rcalVal, calHSTIA *gainArr, int gainArrSize, int extGain, int dacGain) {
 
   // SETUP Cfgs
@@ -758,8 +1058,79 @@ void HELPStat::logSweep(SoftSweepCfg_Type *pSweepCfg, float *pNextFreq)
   }
 }
 
-void HELPStat::runSweep(uint32_t numCycles, uint32_t delaySecs) 
-{
+void HELPStat::runSweep(void) {
+  _currentCycle = 0; 
+  /*
+    Need to not run the program if ArraySize < total points 
+    TO DO: ADD A CHECK HERE  
+  */
+  printf("Total points to run: %d\n", (_numCycles + 1) * _sweepCfg.SweepPoints); // since 0 based indexing, add 1
+  printf("Set array size: %d\n", ARRAY_SIZE);
+  printf("Calibration resistor value: %f\n", _rcalVal);
+
+  // LED to show start of spectroscopy 
+  // digitalWrite(LED1, HIGH); 
+
+  for(uint32_t i = 0; i <= _numCycles; i++) {
+    /* 
+      Wakeup AFE by read register, read 10 times at most.
+      Do this because AD594x goes to sleep after each cycle. 
+    */
+    AD5940_SleepKeyCtrlS(SLPKEY_LOCK); // Disables Sleep Mode 
+    if(_delaySecs)
+    {
+      unsigned long prevTime = millis();
+      unsigned long currTime = millis();
+      printf("Delaying for %d seconds\n", _delaySecs);
+      while(currTime - prevTime < _delaySecs * 1000)
+      {
+        currTime = millis();
+        // printf("Curr delay: %d\n", currTime - prevTime);
+      }
+    } 
+    // Timer for cycle time
+    unsigned long timeStart = millis();
+
+    if(i > 0){
+      if(AD5940_WakeUp(10) > 10) Serial.println("Wakeup failed!");       
+       resetSweep(&_sweepCfg, &_currentFreq);
+       delay(300); // empirical settling delay
+       _currentCycle++;
+    }
+    
+    /* Calibrates based on frequency */
+    // Should calibrate when AFE is active
+    // checkFreq(_currentFreq);
+    configureFrequency(_currentFreq);
+    delay(10); // switching delay
+
+    printf("Cycle %d\n", i);
+    printf("Index, Frequency (Hz), DFT Cal, DFT Mag, Rz (Ohms), Rreal, Rimag, Rphase (rads)\n");
+    
+    while(_sweepCfg.SweepEn == bTRUE)
+    {
+      AD5940_DFTMeasure();
+      // AD5940_DFTMeasureEIS();
+      AD5940_AFECtrlS(AFECTRL_HSTIAPWR|AFECTRL_INAMPPWR|AFECTRL_EXTBUFPWR|\
+              AFECTRL_WG|AFECTRL_DACREFPWR|AFECTRL_HSDACPWR|\
+              AFECTRL_SINC2NOTCH, bTRUE);
+      delay(200);
+    }
+
+    unsigned long timeEnd = millis(); 
+    printf("Time spent running Cycle %d (seconds): %lu\n", i, (timeEnd-timeStart)/1000);
+  }
+  
+  /* Shutdown to conserve power. This turns off the LP-Loop and resets the AFE. */
+  AD5940_ShutDownS();
+  Serial.println("All cycles finished.");
+  Serial.println("AD594x shutting down.");
+
+  /* LEDs to show end of cycle */
+  // digitalWrite(LED1, LOW);
+  // digitalWrite(LED2, HIGH);
+}
+void HELPStat::runSweep(uint32_t numCycles, uint32_t delaySecs) {
   _numCycles = numCycles; 
   _currentCycle = 0; 
   /*
@@ -1176,10 +1547,16 @@ std::vector<float> HELPStat::calculateResistors(float rct_estimate, float rs_est
     }
   }
 
-  float Rct = calculate_Rct(rct_estimate, rs_estimate, Z_real, Z_imag);
-  float Rs  = calculate_Rs(rct_estimate, rs_estimate, Z_real, Z_imag);
+  _calculated_Rct = calculate_Rct(rct_estimate, rs_estimate, Z_real, Z_imag);
+  _calculated_Rs  = calculate_Rs(rct_estimate, rs_estimate, Z_real, Z_imag);
 
-  return({Rct, Rs});
+  Serial.print("Calculated Rct: ");
+  Serial.println(_calculated_Rct);
+  Serial.print("Calculated Rs:  ");
+  Serial.println(_calculated_Rs);
+
+  std::vector<float> resistors = {_calculated_Rct,_calculated_Rs};
+  return(resistors);
 }
 
 void HELPStat::saveDataEIS(String dirName, String fileName)
@@ -2524,4 +2901,258 @@ void HELPStat::AD5940_HSTIARcal(int rHSTIA, float rcalVal)
   printf("RTIA resistor value: %f\n", polarResults.Magnitude);
 
   AD5940_ShutDownS();
+}
+
+void HELPStat::BLE_setup() {
+  Serial.begin(115200);
+
+  BLEDevice::init("HELPStat");
+
+  // Create the BLE Server
+  pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
+
+  // Create the BLE Service
+  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID),45,0);
+
+  // Create a BLE Characteristic
+  pCharacteristicStart = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_START,
+                      BLECharacteristic::PROPERTY_WRITE  |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  
+  pCharacteristicRct = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_RCT,
+                      BLECharacteristic::PROPERTY_READ   |
+                      BLECharacteristic::PROPERTY_NOTIFY |
+                      BLECharacteristic::PROPERTY_WRITE
+                    );
+  pCharacteristicRs = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_RS,
+                      BLECharacteristic::PROPERTY_READ   |
+                      BLECharacteristic::PROPERTY_NOTIFY |
+                      BLECharacteristic::PROPERTY_WRITE
+                    );
+
+  pCharacteristicNumCycles = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_NUMCYCLES,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+
+  pCharacteristicNumPoints = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_NUMPOINTS,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+
+  pCharacteristicStartFreq = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_STARTFREQ,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+
+  pCharacteristicEndFreq = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_ENDFREQ,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    ); 
+
+  pCharacteristicRcalVal = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_RCALVAL,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+
+  pCharacteristicBiasVolt = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_BIASVOLT,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+  );
+
+  pCharacteristicZeroVolt = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_ZEROVOLT,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+  );
+
+  pCharacteristicDelaySecs = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_DELAYSECS,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+  );
+
+  pCharacteristicExtGain = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_EXTGAIN,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+  );
+
+  pCharacteristicDacGain = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_DACGAIN,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+  );
+
+  pCharacteristicFolderName = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_FOLDERNAME,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+  );
+
+  pCharacteristicFileName = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_FILENAME,
+                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_NOTIFY
+  );
+
+
+  // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
+  // Create a BLE Descriptor
+  pCharacteristicStart->addDescriptor(new BLE2902());
+  pCharacteristicRct->addDescriptor(new BLE2902());
+  pCharacteristicRs->addDescriptor(new BLE2902());
+  pCharacteristicNumCycles->addDescriptor(new BLE2902());
+  pCharacteristicNumPoints->addDescriptor(new BLE2902());
+  pCharacteristicStartFreq->addDescriptor(new BLE2902());
+  pCharacteristicEndFreq->addDescriptor(new BLE2902());
+  pCharacteristicRcalVal->addDescriptor(new BLE2902());
+
+  pCharacteristicBiasVolt->addDescriptor(new BLE2902());
+  pCharacteristicZeroVolt->addDescriptor(new BLE2902());
+  pCharacteristicDelaySecs->addDescriptor(new BLE2902());
+  pCharacteristicExtGain->addDescriptor(new BLE2902());
+  pCharacteristicDacGain->addDescriptor(new BLE2902());
+  pCharacteristicFolderName->addDescriptor(new BLE2902());
+  pCharacteristicFileName->addDescriptor(new BLE2902());
+
+  // Start the service
+  pService->start();
+
+  // Start advertising
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID);
+  pAdvertising->setScanResponse(false);
+  pAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
+  pAdvertising->setMinPreferred(0x12);
+  BLEDevice::startAdvertising();
+  Serial.println("Waiting a client connection to notify...");
+}
+
+void HELPStat::BLE_settings() {
+  do{
+    old_start_value = start_value;
+    start_value = *(pCharacteristicStart->getData());
+    delay(3);
+
+    std::string rx_rct_str = pCharacteristicRct->getValue();
+    if(rx_rct_str.length() > 0)
+      _rct_estimate = std::stof(rx_rct_str);
+    
+    std::string rx_rs_str  = pCharacteristicRs->getValue();
+    if(rx_rs_str.length() > 0)
+      _rs_estimate  = std::stof(rx_rs_str);
+
+    std::string numCycles_str = pCharacteristicNumCycles->getValue();
+    if(numCycles_str.length() > 0)
+      _numCycles = std::stoul(numCycles_str);
+
+    std::string numPoints_str = pCharacteristicNumPoints->getValue();
+    if(numPoints_str.length() > 0)
+      _numPoints = std::stoul(numPoints_str);
+
+    std::string startFreq_str = pCharacteristicStartFreq->getValue();
+    if(startFreq_str.length() > 0)
+      _startFreq = std::stof(startFreq_str);
+
+    std::string endFreq_str   = pCharacteristicEndFreq->getValue();
+    if(endFreq_str.length() > 0)
+      _endFreq = std::stof(endFreq_str);
+
+    std::string rcalVal_str   = pCharacteristicRcalVal->getValue();
+    if(rcalVal_str.length() > 0)
+      _rcalVal = std::stof(rcalVal_str);
+
+    std::string biasvolt_str   = pCharacteristicBiasVolt->getValue();
+    if(biasvolt_str.length() > 0)
+      _biasVolt = std::stof(biasvolt_str);
+
+    std::string zeroVolt_str   = pCharacteristicZeroVolt->getValue();
+    if(zeroVolt_str.length() > 0)
+      _zeroVolt = std::stof(zeroVolt_str);
+
+    std::string delaySecs_str   = pCharacteristicDelaySecs->getValue();
+    if(delaySecs_str.length() > 0)
+      _delaySecs = std::stoul(delaySecs_str);
+
+    std::string extGain_str   = pCharacteristicExtGain->getValue();
+    if(extGain_str.length() > 0)
+      _extGain = std::stoi(extGain_str);
+
+    std::string dacGain_str   = pCharacteristicDacGain->getValue();
+    if(dacGain_str.length() > 0)
+      _dacGain = std::stoi(dacGain_str);
+
+    folderName = String((pCharacteristicFolderName->getValue()).c_str());
+
+    fileName = String((pCharacteristicFileName->getValue()).c_str());
+  }while(!start_value || old_start_value == start_value); // || digitalRead(BUTTON)
+}
+
+void HELPStat::BLE_transmitResistors() {
+  static char buffer[10];
+  dtostrf(_calculated_Rct,4,3,buffer);
+  pCharacteristicRct->setValue(buffer);
+  pCharacteristicRct->notify();
+
+  dtostrf(_calculated_Rs,4,3,buffer);
+  pCharacteristicRs->setValue(buffer);
+  pCharacteristicRs->notify();
+}
+
+void HELPStat::print_settings() {
+  Serial.println("SETTINGS");
+  
+  // Print Resistor Estimates & Calibration
+  Serial.print("Rct Estimation:  ");
+  Serial.println(_rct_estimate);
+  Serial.print("Rs Estimation:   ");
+  Serial.println(_rs_estimate);
+  Serial.print("Rcal:            ");
+  Serial.println(_rcalVal);
+
+  // Print Frequency Range
+  Serial.print("Start Frequency: ");
+  Serial.println(_startFreq);
+  Serial.print("End Frequency:   ");
+  Serial.println(_endFreq);
+  
+  // Print Cycles and Points
+  Serial.print("numCycles:       ");
+  Serial.println(_numCycles);
+  Serial.print("numPoints:       ");
+  Serial.println(_numPoints);
+
+  // Print Gains
+  Serial.print("External Gain:   ");
+  Serial.println(_extGain);
+  Serial.print("DAC Gain:        ");
+  Serial.println(_dacGain);
+
+  // Print Voltages
+  Serial.print("Bias Voltage:    ");
+  Serial.println(_biasVolt);
+  Serial.print("Zero Voltage:    ");
+  Serial.println(_zeroVolt);
+
+  // Print Delay
+  Serial.print("Delay (s):       ");
+  Serial.println(_delaySecs);
+
+  // Print folder/file names
+  Serial.print("Folder Name:     ");
+  Serial.println(folderName);
+  Serial.print("File Name:       ");
+  Serial.println(fileName);
 }
