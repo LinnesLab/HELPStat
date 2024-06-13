@@ -56,6 +56,98 @@ extern "C" {
 }
 
 /* 
+    06/13/2024: Shannon Riegle here. Implemented BLE communication to allow user to reconfigure different
+    settings w/o needing to reprogram the HELPStat PCB each time. Also reorganized data-logging to have
+    most recent logs on top. Figured this would be easier for future developers to see what the most recent
+    changes to the library were.
+
+    Also had the Levenberg-Marquardt fitting algorithm moved into this library. This is dependent on another
+    C++ library called Eigen. I modified Bolder Flight System's Eigen port to include the unsupported features
+    seen on the computer version, namely nonlinear solving. More documentation on that can be found at:
+    https://github.com/LinnesLab/Eigen-Port
+    
+    05/14/2024: Renamed from TestLibImp to HELPStat for consistency with published paper.
+
+    03/2024: Added current noise function for automatically running measurements for open-circuit noise.
+    
+    02/16/2024: Refactored configuration of HSTIA to be an input instead of hard-coding. 
+    Gain size needs to be calculated in .ino file rather than the library. Run into bugs otherwise. 
+    Seems to work reliably with dummy values. Now to test with a frequency sweep and actual EIS. 
+    Should now be easier to alter gains for each measurment.
+    
+    02/13/2024: Added a delay input to runSweep to allow for 
+    equilibration if needed. Doing it here when Sleep Mode is disabled
+    just in case device goes to sleep mode in between. 
+    
+    02/12/2024: Made RCAL an input to TDD - better for long term. 
+    Changed constDelay to 1000 instead of 3000 and the delay function
+    for frequencies <= 5 Hz to do two full cycles + 2 seconds. I like this better because
+    it's shorter and has more rational in letting even slower frequencies wait
+    for at least two cycles without compromising the higher frequencies.
+
+    02/11/2024: Reverted to just delaying the initial measurement rather than
+    the method described in 02/10/2024. Also added settling delay func to the waveform
+    generator, but honestly think that the biggest indicator of accuracy 
+    is currently the RTIA. Getting some high imaginary value noise at the last measurement.
+    Not sure why. Could be due to delay?
+
+    02/10/2024: Isolated bias by turning everything but the WG on. That way
+    bias is applied but no sine wave is active yet. Will see if this affects results for RC case. 
+    Also want to experiment with Gain and Offset Calibration on WG.
+    
+    02/08/2024: Need to figure out how to isolate bias. Maybe I don't turn on WG
+    until a set delay time passes?
+    
+    02/07/2024: Changed 500 ms to 1s but reverted back because there wasn't really a difference.
+    
+    02/06/2024: Moved settlingDelay() to after DFT convert starts. Added an empirical delay
+    of 500 ms to when WG starts instead. Getting more consistent results this way, I think. 
+    Getting an initial negative value for Rimaginary but it's low so likely alright.
+    
+    01/08/2024: Bias works, verified with DMM. Scope is giving mixed results, however.
+    
+    11/30/2023:
+    Tried with the LPDAC and bias but the oscilloscope gave funky results and clipped signals.
+    Removed it from the impedance codes and will test using a separate config and waveform function.
+    I want to see if I can't find consistent settings that could hopefully lead to a variable bias 
+    and a better waveform output because if it's clipping like the scope showed, could be an area
+    of inconsistency. Will test with KFeCN for now with the current bias (1.1V)
+    and see what results look like. 
+
+    11/06/2023:
+    Looks like the issue was primarily the HSTIA (go figure) values. Set them 
+    appropriately and getting decent data. Problem is that high frequency 
+    around 100kHz to about 20kHz is relatively noisy, and low frequency (< 0.5 Hz) is too. 
+
+    Will try increasing the settling time for the low frequency runs < 0.5 Hz to double the period
+    + a constant. Unsure of what to do for the high frequency noise. I want to try 
+    adding a delay between cycles because I think it may switch too fast after calibration? 
+    Is that a thing? 
+    
+    But overall, getting decent enough data with the sweep as it is, and 
+    about a few minutes faster than the normal method. This also gives me more control about 
+    what to do with the data afterwards. Can probably start testing with the impedance board like this
+    since I'll keep optimizing it anyways. Will be a nice benchmark to compare with the 
+    Impedance.c method that utilizes the sequencer. 
+
+    11/05/2023: 
+    Added sweep functionality and also implemented repeating cycles in the code. 
+    Just need to figure out how to best add a delay for settling time without it taking 
+    forever. 
+
+    I think modern potentiostats do this by having it dependent on frequency, and 
+    so I'll probably do 2/freq + a constant wait time so that I'm waiting for at least
+    two periods and see if that works. Also probably need to make it more robust 
+    by adding a configuration and DFT struct to enable user inputs. 
+
+    11/05/2023:
+    2 / freq + const isn't working. Will add a check frequency function
+    to see if I can at least get high frequencies working. I'm not sure what
+    is a good enough range to wait for the settling time.
+
+    11/03/2023: 
+    Removed sequencer functionality. Just need to add sweep and settling times.
+
     09/21/2023:
     Functions utilized are based on Analog Devices examples. 
     Impedance.h and Impedance.c were used to help develop our own version
@@ -75,88 +167,6 @@ extern "C" {
     Big change - Interrupt pin is intialized to INPUT_PULLUP. I think 
     this may have been a big factor in defining an initial state for falling.
     Or not. We'll see. 
-
-    11/03/2023: 
-    Removed sequencer functionality. Just need to add sweep and settling times.
-
-    11/05/2023: 
-    Added sweep functionality and also implemented repeating cycles in the code. 
-    Just need to figure out how to best add a delay for settling time without it taking 
-    forever. 
-
-    I think modern potentiostats do this by having it dependent on frequency, and 
-    so I'll probably do 2/freq + a constant wait time so that I'm waiting for at least
-    two periods and see if that works. Also probably need to make it more robust 
-    by adding a configuration and DFT struct to enable user inputs. 
-
-    11/05/2023:
-    2 / freq + const isn't working. Will add a check frequency function
-    to see if I can at least get high frequencies working. I'm not sure what
-    is a good enough range to wait for the settling time. 
-
-    11/06/2023:
-    Looks like the issue was primarily the HSTIA (go figure) values. Set them 
-    appropriately and getting decent data. Problem is that high frequency 
-    around 100kHz to about 20kHz is relatively noisy, and low frequency (< 0.5 Hz) is too. 
-
-    Will try increasing the settling time for the low frequency runs < 0.5 Hz to double the period
-    + a constant. Unsure of what to do for the high frequency noise. I want to try 
-    adding a delay between cycles because I think it may switch too fast after calibration? 
-    Is that a thing? 
-    
-    But overall, getting decent enough data with the sweep as it is, and 
-    about a few minutes faster than the normal method. This also gives me more control about 
-    what to do with the data afterwards. Can probably start testing with the impedance board like this
-    since I'll keep optimizing it anyways. Will be a nice benchmark to compare with the 
-    Impedance.c method that utilizes the sequencer. 
-
-    11/30/2023:
-    Tried with the LPDAC and bias but the oscilloscope gave funky results and clipped signals.
-    Removed it from the impedance codes and will test using a separate config and waveform function.
-    I want to see if I can't find consistent settings that could hopefully lead to a variable bias 
-    and a better waveform output because if it's clipping like the scope showed, could be an area
-    of inconsistency. Will test with KFeCN for now with the current bias (1.1V)
-    and see what results look like. 
-
-    01/08/2024: Bias works, verified with DMM. Scope is giving mixed results, however.
-
-    02/06/2024: Moved settlingDelay() to after DFT convert starts. Added an empirical delay
-    of 500 ms to when WG starts instead. Getting more consistent results this way, I think. 
-    Getting an initial negative value for Rimaginary but it's low so likely alright.
-    
-    02/07/2024: Changed 500 ms to 1s but reverted back because there wasn't really a difference.
-
-    02/08/2024: Need to figure out how to isolate bias. Maybe I don't turn on WG
-    until a set delay time passes? 
-
-    02/10/2024: Isolated bias by turning everything but the WG on. That way
-    bias is applied but no sine wave is active yet. Will see if this affects results for RC case. 
-    Also want to experiment with Gain and Offset Calibration on WG.
-
-    02/11/2024: Reverted to just delaying the initial measurement rather than
-    the method described in 02/10/2024. Also added settling delay func to the waveform
-    generator, but honestly think that the biggest indicator of accuracy 
-    is currently the RTIA. Getting some high imaginary value noise at the last measurement.
-    Not sure why. Could be due to delay?
-
-    02/12/2024: Made RCAL an input to TDD - better for long term. 
-    Changed constDelay to 1000 instead of 3000 and the delay function
-    for frequencies <= 5 Hz to do two full cycles + 2 seconds. I like this better because
-    it's shorter and has more rational in letting even slower frequencies wait
-    for at least two cycles without compromising the higher frequencies.
-
-    02/13/2024: Added a delay input to runSweep to allow for 
-    equilibration if needed. Doing it here when Sleep Mode is disabled
-    just in case device goes to sleep mode in between. 
-
-    02/16/2024: Refactored configuration of HSTIA to be an input instead of hard-coding. 
-    Gain size needs to be calculated in .ino file rather than the library. Run into bugs otherwise. 
-    Seems to work reliably with dummy values. Now to test with a frequency sweep and actual EIS. 
-    Should now be easier to alter gains for each measurment.
-    
-    03/2024: Added current noise function for automatically running measurements for open-circuit noise.
-
-    05/14/2024: Renamed from TestLibImp to HELPStat for consistency with published paper.
 */
 
 #define SYSCLCK 16000000.0  // System Clock frequency (16 MHz)
@@ -335,6 +345,7 @@ class HELPStat {
         void saveDataEIS(String dirName, String fileName);
 
         /* LMA for Rct / Rs Calculation */
+        std::vector<float> calculateResistors(void);
         std::vector<float> calculateResistors(float rct_estimate, float rs_estimate);
 
         /* Functions to test bias voltage */

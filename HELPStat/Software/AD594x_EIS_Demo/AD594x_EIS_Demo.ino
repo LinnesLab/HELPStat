@@ -347,7 +347,7 @@ void loop() {
   demo.runSweep();
   // demo.AD5940_TDD(startFreq, endFreq, numPoints, biasVolt, zeroVolt, rcalVal, test, gainSize, extGain, dacGain); // This version specifies that values other than the private variables be used
   // demo.runSweep(numCycles, delaySecs); // Run the Sweep
-  std::vector<float> resistors = demo.calculateResistors(rct_estimate, rs_estimate);
+  std::vector<float> resistors = demo.calculateResistors();
 
   // static char buffer[10];
   // dtostrf(resistors[0],4,3,buffer);

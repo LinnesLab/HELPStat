@@ -265,17 +265,22 @@ void HELPStat::DFTPolling_Main(void) {
 }
 
 /*
-Sets initial configuration for HSLOOP (will change in measurement stage)
-and configures CLK, AFE, ADC, GPIO/INTs, and DSP for analysis. 
-Most will stay constant but some will change depending on frequency 
+  Sets initial configuration for HSLOOP (will change in measurement stage)
+  and configures CLK, AFE, ADC, GPIO/INTs, and DSP for analysis. 
+  Most will stay constant but some will change depending on frequency 
 
-11/30/2023 - Need to view bias with an oscilloscope to verify 
+  06/13/2024 - Created two overloaded functions for AD5940_TDD. One overload is the
+  original version, where the user manually inputs startFreq, endFreq, etc. The other
+  only takes *gainArr and gainArrSize as inputs (this might be changed in the future).
+  The other measurements are derived from the private variables in the HELPStat class.
+  These values are adjusted over BLE communication (see BLE_settings()).
 
-02/12/2024 - Bias was verified. Waveforms look somewhat distorted though for some
-frequencies and subject to noise, but frequency at 200 kHz and 0.1 Hz was accurate
-and bias works. 
+  02/12/2024 - Bias was verified. Waveforms look somewhat distorted though for some
+  frequencies and subject to noise, but frequency at 200 kHz and 0.1 Hz was accurate
+  and bias works.
+
+  11/30/2023 - Need to view bias with an oscilloscope to verify 
 */
-// NOTE: 2 overloads of AD5940_TDD
 void HELPStat::AD5940_TDD(calHSTIA *gainArr, int gainArrSize) {
   // SETUP Cfgs
   CLKCfg_Type clk_cfg;
@@ -1058,6 +1063,12 @@ void HELPStat::logSweep(SoftSweepCfg_Type *pSweepCfg, float *pNextFreq)
   }
 }
 
+/*
+  06/13/2024 - Created two overloaded functions for runSweep. One is the original,
+  where user has to input the number of cycles to run as well as the delay in seconds.
+  The second function takes no inputs and uses the private variables _numCycles and
+  _delaySecs. These are updated over BLE (see the BLE_settings() function).
+*/
 void HELPStat::runSweep(void) {
   _currentCycle = 0; 
   /*
@@ -1533,6 +1544,42 @@ void HELPStat::printData(void)
   Arduino's SPI library).
 */
 
+/*
+  This function uses estimates for Rct and Rs to fit the impedence data to the semicircle equation.
+  It returns a vector containing both the Rct and Rs estimates. Note that this is dependent on the
+  lma.h and lma.c user-defined libraries (see https://github.com/LinnesLab/EIS-LevenbergMarquardtAlgorithm)
+  This is also itself dependent on a modified version of Bolder Flight System's Eigen port (see
+  https://github.com/LinnesLab/Eigen-Port).
+
+  06/13/2024 - Two overloaded functions were made. One where the user manually inputs what estimates
+  to use, and the other that uses private variables. These private variables are updated in the
+  BLE_settings() function.
+*/
+std::vector<float> HELPStat::calculateResistors() {
+  std::vector<float> Z_real;
+  std::vector<float> Z_imag;
+
+  // Should append each real and imaginary data point
+  for(uint32_t i = 0; i < _sweepCfg.SweepPoints; i++) {
+    for(uint32_t j = 0; j <= _numCycles; j++) {
+      impStruct eis;
+      eis = eisArr[i + (j * _sweepCfg.SweepPoints)];
+      Z_real.push_back(eis.real);
+      Z_imag.push_back(eis.imag);
+    }
+  }
+
+  _calculated_Rct = calculate_Rct(_rct_estimate, _rs_estimate, Z_real, Z_imag);
+  _calculated_Rs  = calculate_Rs(_rct_estimate, _rs_estimate, Z_real, Z_imag);
+
+  Serial.print("Calculated Rct: ");
+  Serial.println(_calculated_Rct);
+  Serial.print("Calculated Rs:  ");
+  Serial.println(_calculated_Rs);
+
+  std::vector<float> resistors = {_calculated_Rct,_calculated_Rs};
+  return(resistors);
+}
 std::vector<float> HELPStat::calculateResistors(float rct_estimate, float rs_estimate) {
   std::vector<float> Z_real;
   std::vector<float> Z_imag;
@@ -2903,6 +2950,9 @@ void HELPStat::AD5940_HSTIARcal(int rHSTIA, float rcalVal)
   AD5940_ShutDownS();
 }
 
+/*
+  This function initializes the HELPStat as a BLE server and creates the different parameters.
+*/
 void HELPStat::BLE_setup() {
   Serial.begin(115200);
 
@@ -3040,6 +3090,10 @@ void HELPStat::BLE_setup() {
   Serial.println("Waiting a client connection to notify...");
 }
 
+/*
+  This function allows the user to adjust settings over BLE until a start signal is sent.
+  Note that this is practically an infinite loop if the BLE signal is never sent.
+*/
 void HELPStat::BLE_settings() {
   do{
     old_start_value = start_value;
@@ -3100,6 +3154,10 @@ void HELPStat::BLE_settings() {
   }while(!start_value || old_start_value == start_value); // || digitalRead(BUTTON)
 }
 
+/*
+  This function sends the calculated Rct and Rs values to an external BLE client. The notify
+  flags for these characteristics are also set to inform the client that data has been updated.
+*/
 void HELPStat::BLE_transmitResistors() {
   static char buffer[10];
   dtostrf(_calculated_Rct,4,3,buffer);
@@ -3111,6 +3169,9 @@ void HELPStat::BLE_transmitResistors() {
   pCharacteristicRs->notify();
 }
 
+/*
+  This function simply prints what the private variable settings are currently set to.
+*/
 void HELPStat::print_settings() {
   Serial.println("SETTINGS");
   
