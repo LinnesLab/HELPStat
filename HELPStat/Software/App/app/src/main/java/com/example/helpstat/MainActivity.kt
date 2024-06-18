@@ -1,6 +1,8 @@
 package com.example.helpstat
 
 import android.os.Bundle
+import android.util.Log
+import android.widget.Button
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -17,21 +19,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-    }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    HELPStatTheme {
-        Greeting("Android")
+        findViewById<Button>(R.id.button_Start)
+            .setOnClickListener {
+                Log.d("BUTTONS","User hit START")
+            }
     }
 }
