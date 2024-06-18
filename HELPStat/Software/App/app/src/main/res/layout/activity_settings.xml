@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/linearLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="10dp">
+
+    <Button
+        android:id="@+id/button_applySettings"
+        android:layout_width="0dp"
+        android:layout_height="64dp"
+        android:text="Apply Settings"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/button_applySettings"
+        android:paddingVertical="32dp"
+        tools:layout_editor_absoluteX="10dp"
+        android:fillViewport="true" >
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/textView2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Rct Estimate (\u03a9)"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_rct_estimate"
+                app:layout_constraintEnd_toStartOf="@+id/editText_rct_estimate"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <EditText
+                android:id="@+id/editText_rct_estimate"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:hint="rct_estimate"
+                android:inputType="numberDecimal"
+                android:text="5000"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@+id/textView2"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/textView3"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Rs Estimate (\u03a9)"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_rs_estimate"
+                app:layout_constraintEnd_toStartOf="@+id/editText_rs_estimate"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <EditText
+                android:id="@+id/editText_rs_estimate"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:hint="rs_estimate"
+                android:inputType="numberDecimal"
+                android:text="150"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@+id/textView3"
+                app:layout_constraintTop_toBottomOf="@+id/editText_rct_estimate" />
+
+            <TextView
+                android:id="@+id/textView4"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Rcal (\u03a9)"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_rcalVal"
+                app:layout_constraintEnd_toStartOf="@+id/editText_rcalVal"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <EditText
+                android:id="@+id/editText_rcalVal"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:hint="rcalVal"
+                android:inputType="numberDecimal"
+                android:text="1000"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@+id/textView4"
+                app:layout_constraintTop_toBottomOf="@+id/editText_rs_estimate" />
+
+            <TextView
+                android:id="@+id/textView5"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Start Frequency (Hz)"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_startFreq"
+                app:layout_constraintEnd_toStartOf="@+id/editText_startFreq"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <EditText
+                android:id="@+id/editText_startFreq"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:hint="startFreq"
+                android:inputType="numberDecimal"
+                android:text="100000"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@+id/textView5"
+                app:layout_constraintTop_toBottomOf="@+id/editText_rcalVal" />
+
+            <TextView
+                android:id="@+id/textView6"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="End Frequency (Hz)"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_endFreq"
+                app:layout_constraintEnd_toStartOf="@+id/editText_endFreq"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <EditText
+                android:id="@+id/editText_endFreq"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:hint="endFreq"
+                android:inputType="numberDecimal"
+                android:text="1"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@+id/textView6"
+                app:layout_constraintTop_toBottomOf="@+id/editText_startFreq" />
+
+            <TextView
+                android:id="@+id/textView7"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Points per Decade"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_numPoints"
+                app:layout_constraintEnd_toStartOf="@+id/editText_numPoints"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <EditText
+                android:id="@+id/editText_numPoints"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:hint="numPoints"
+                android:inputType="number"
+                android:text="6"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@+id/textView7"
+                app:layout_constraintTop_toBottomOf="@+id/editText_endFreq" />
+
+            <TextView
+                android:id="@+id/textView8"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Number of Cycles"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_numCycles"
+                app:layout_constraintEnd_toStartOf="@+id/editText_numCycles"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <EditText
+                android:id="@+id/editText_numCycles"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:hint="numCycles"
+                android:inputType="number"
+                android:text="1"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@+id/textView8"
+                app:layout_constraintTop_toBottomOf="@+id/editText_numPoints" />
+
+            <TextView
+                android:id="@+id/textView9"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Folder Name"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_folderName"
+                app:layout_constraintEnd_toStartOf="@+id/editText_folderName"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <EditText
+                android:id="@+id/editText_folderName"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:hint="folderName"
+                android:inputType="text"
+                android:text="folder"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@+id/textView9"
+                app:layout_constraintTop_toBottomOf="@+id/editText_numCycles" />
+
+            <TextView
+                android:id="@+id/textView10"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="File Name"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_fileName"
+                app:layout_constraintEnd_toStartOf="@+id/editText_fileName"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <EditText
+                android:id="@+id/editText_fileName"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:hint="fileName"
+                android:inputType="text"
+                android:text="file"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@+id/textView10"
+                app:layout_constraintTop_toBottomOf="@+id/editText_folderName" />
+
+            <TextView
+                android:id="@+id/textView11"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="External Gain"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_extGain"
+                app:layout_constraintEnd_toStartOf="@+id/editText_extGain"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <EditText
+                android:id="@+id/editText_extGain"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:hint="extGain"
+                android:inputType="number"
+                android:text="1"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@+id/textView11"
+                app:layout_constraintTop_toBottomOf="@+id/editText_fileName" />
+
+            <TextView
+                android:id="@+id/textView12"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="DAC Gain"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_dacGain"
+                app:layout_constraintEnd_toStartOf="@+id/editText_dacGain"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <EditText
+                android:id="@+id/editText_dacGain"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:hint="dacGain"
+                android:inputType="number"
+                android:text="1"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@+id/textView12"
+                app:layout_constraintTop_toBottomOf="@+id/editText_extGain" />
+
+            <TextView
+                android:id="@+id/textView13"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Zero Voltage (V)"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_zeroVolt"
+                app:layout_constraintEnd_toStartOf="@+id/editText_zeroVolt"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <EditText
+                android:id="@+id/editText_zeroVolt"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:hint="zeroVolt"
+                android:inputType="numberDecimal"
+                android:text="0"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@+id/textView13"
+                app:layout_constraintTop_toBottomOf="@+id/editText_dacGain" />
+
+            <TextView
+                android:id="@+id/textView14"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Bias Voltage (V)"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_biasVolt"
+                app:layout_constraintEnd_toStartOf="@+id/editText_biasVolt"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <EditText
+                android:id="@+id/editText_biasVolt"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:hint="biasVolt"
+                android:inputType="numberDecimal"
+                android:text="0"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@+id/textView14"
+                app:layout_constraintTop_toBottomOf="@+id/editText_zeroVolt" />
+
+            <TextView
+                android:id="@+id/textView15"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:text="Delay (s)"
+                android:textColor="@color/black"
+                android:textSize="18sp"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_delaySecs"
+                app:layout_constraintEnd_toStartOf="@+id/editText_delaySecs"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toStartOf="parent" />
+
+            <EditText
+                android:id="@+id/editText_delaySecs"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:hint="delaySecs"
+                android:inputType="number"
+                android:text="0"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintStart_toEndOf="@+id/textView15"
+                app:layout_constraintTop_toBottomOf="@+id/editText_biasVolt" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
