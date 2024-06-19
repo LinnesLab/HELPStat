@@ -997,27 +997,6 @@ void HELPStat::AD5940_DFTMeasure(void) {
   printf("%.4f,", eis.imag);
   printf("%.4f\n", eis.phaseRad);
 
-  // Transmit Index
-  static char buffer[10];
-  dtostrf(_sweepCfg.SweepIndex,1,0,buffer);
-  pCharacteristicSweepIndex->setValue(buffer);
-  pCharacteristicSweepIndex->notify();
-
-  // Transmit Freq
-  dtostrf(_currentFreq,1,2,buffer);
-  pCharacteristicCurrentFreq->setValue(buffer);
-  pCharacteristicCurrentFreq->notify();
-
-  // Transmit Zreal
-  dtostrf(eis.real,1,4,buffer);
-  pCharacteristicReal->setValue(buffer);
-  pCharacteristicReal->notify();
-
-  // Transmit Zimag
-  dtostrf(eis.imag,1,4,buffer);
-  pCharacteristicImag->setValue(buffer);
-  pCharacteristicImag->notify();
-
   eisArr[_sweepCfg.SweepIndex + (_currentCycle * _sweepCfg.SweepPoints)] = eis; 
   // printf("Array Index: %d\n",_sweepCfg.SweepIndex + (_currentCycle * _sweepCfg.SweepPoints));
 
@@ -3197,6 +3176,50 @@ void HELPStat::BLE_transmitResistors() {
   dtostrf(_calculated_Rs,4,3,buffer);
   pCharacteristicRs->setValue(buffer);
   pCharacteristicRs->notify();
+
+  for(uint32_t i = 0; i < _sweepCfg.SweepPoints; i++) {
+    for(uint32_t j = 0; j <= _numCycles; j++) {
+      impStruct eis;
+      eis = eisArr[i + (j * _sweepCfg.SweepPoints)];
+
+      // dtostrf(eis.SweepIndex,1,0,buffer);
+      // pCharacteristicSweepIndex->setValue(buffer);
+      // pCharacteristicSweepIndex->notify();
+
+      // dtostrf(eis.frequency,1,2,buffer);
+      // pCharacteristicCurrentFreq->setValue(buffer);
+      // pCharacteristicCurrentFreq->notify();
+
+      dtostrf(eis.real,1,4,buffer);
+      pCharacteristicReal->setValue(buffer);
+      pCharacteristicReal->notify();
+
+      dtostrf(eis.imag,1,4,buffer);
+      pCharacteristicImag->setValue(buffer);
+      pCharacteristicImag->notify();
+    }
+  }
+
+  // // Transmit Index
+  // static char buffer[10];
+  // dtostrf(_sweepCfg.SweepIndex,1,0,buffer);
+  // pCharacteristicSweepIndex->setValue(buffer);
+  // pCharacteristicSweepIndex->notify();
+
+  // // Transmit Freq
+  // dtostrf(_currentFreq,1,2,buffer);
+  // pCharacteristicCurrentFreq->setValue(buffer);
+  // pCharacteristicCurrentFreq->notify();
+
+  // // Transmit Zreal
+  // dtostrf(eis.real,1,4,buffer);
+  // pCharacteristicReal->setValue(buffer);
+  // pCharacteristicReal->notify();
+
+  // // Transmit Zimag
+  // dtostrf(eis.imag,1,4,buffer);
+  // pCharacteristicImag->setValue(buffer);
+  // pCharacteristicImag->notify();
 }
 
 /*

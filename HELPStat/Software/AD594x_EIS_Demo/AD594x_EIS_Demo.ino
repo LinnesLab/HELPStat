@@ -326,7 +326,7 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly: 
-  demo.BLE_settings();
+  //demo.BLE_settings();
   int buttonStatus = digitalRead(BUTTON); 
   delay(10); // Additional Debounce delay - 10 ms 
 
