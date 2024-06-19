@@ -56,6 +56,9 @@ extern "C" {
 }
 
 /* 
+    06/19/2024: Started adjusting HELPStat::AD5940_DFTMeasure() to transmit index (of measurement), 
+    frequency (of current sample), Zreal, and Zim.
+
     06/13/2024: Shannon Riegle here. Implemented BLE communication to allow user to reconfigure different
     settings w/o needing to reprogram the HELPStat PCB each time. Also reorganized data-logging to have
     most recent logs on top. Figured this would be easier for future developers to see what the most recent
@@ -183,7 +186,6 @@ extern "C" {
 // Push Button
 #define BUTTON 7
 
-
 // BLE Characteristics
 #define SERVICE_UUID                    "4fafc201-1fb5-459e-8fcc-c5c9c331914b" // Device UUID
 #define CHARACTERISTIC_UUID_START       "beb5483e-36e1-4688-b7f5-ea07361b26a8" // UUIDs for different parameters
@@ -201,6 +203,10 @@ extern "C" {
 #define CHARACTERISTIC_UUID_DACGAIN     "36377d50-6ba7-4cc1-825a-42746c4028dc"
 #define CHARACTERISTIC_UUID_FOLDERNAME  "02193c1e-4afe-4211-b64f-e878e9d6c0a4"
 #define CHARACTERISTIC_UUID_FILENAME    "d07519f0-1c45-461a-9b8e-fcaad4e53f0c"
+#define CHARACTERISTIC_UUID_SWEEPINDEX  "8c5cf012-5717-4e4b-a702-4d34ba80dc9a"
+#define CHARACTERISTIC_UUID_CURRENTFREQ "893028d3-54b4-4d59-a03b-ece286572e4a"
+#define CHARACTERISTIC_UUID_REAL        "67c0488c-e330-438c-a88d-59abfcfbb527"
+#define CHARACTERISTIC_UUID_IMAG        "e080f979-bb39-4151-8082-755e3ae6f055"
 
 typedef struct _impStruct {
     float freq;
@@ -287,21 +293,25 @@ class HELPStat {
 
         // Bluetooth Characteristics
         BLEServer* pServer = NULL;
-        BLECharacteristic* pCharacteristicStart      = NULL;
-        BLECharacteristic* pCharacteristicRct        = NULL;
-        BLECharacteristic* pCharacteristicRs         = NULL;
-        BLECharacteristic* pCharacteristicNumCycles  = NULL;
-        BLECharacteristic* pCharacteristicNumPoints  = NULL;
-        BLECharacteristic* pCharacteristicStartFreq  = NULL;
-        BLECharacteristic* pCharacteristicEndFreq    = NULL;
-        BLECharacteristic* pCharacteristicRcalVal    = NULL;
-        BLECharacteristic* pCharacteristicBiasVolt   = NULL;
-        BLECharacteristic* pCharacteristicZeroVolt   = NULL;
-        BLECharacteristic* pCharacteristicDelaySecs  = NULL;
-        BLECharacteristic* pCharacteristicExtGain    = NULL;
-        BLECharacteristic* pCharacteristicDacGain    = NULL;
-        BLECharacteristic* pCharacteristicFolderName = NULL;
-        BLECharacteristic* pCharacteristicFileName   = NULL;
+        BLECharacteristic* pCharacteristicStart       = NULL;
+        BLECharacteristic* pCharacteristicRct         = NULL;
+        BLECharacteristic* pCharacteristicRs          = NULL;
+        BLECharacteristic* pCharacteristicNumCycles   = NULL;
+        BLECharacteristic* pCharacteristicNumPoints   = NULL;
+        BLECharacteristic* pCharacteristicStartFreq   = NULL;
+        BLECharacteristic* pCharacteristicEndFreq     = NULL;
+        BLECharacteristic* pCharacteristicRcalVal     = NULL;
+        BLECharacteristic* pCharacteristicBiasVolt    = NULL;
+        BLECharacteristic* pCharacteristicZeroVolt    = NULL;
+        BLECharacteristic* pCharacteristicDelaySecs   = NULL;
+        BLECharacteristic* pCharacteristicExtGain     = NULL;
+        BLECharacteristic* pCharacteristicDacGain     = NULL;
+        BLECharacteristic* pCharacteristicFolderName  = NULL;
+        BLECharacteristic* pCharacteristicFileName    = NULL;
+        BLECharacteristic* pCharacteristicSweepIndex  = NULL;
+        BLECharacteristic* pCharacteristicCurrentFreq = NULL;
+        BLECharacteristic* pCharacteristicReal        = NULL;
+        BLECharacteristic* pCharacteristicImag        = NULL;
 
         // bool deviceConnected = false;
         bool start_value     = false;

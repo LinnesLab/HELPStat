@@ -997,6 +997,27 @@ void HELPStat::AD5940_DFTMeasure(void) {
   printf("%.4f,", eis.imag);
   printf("%.4f\n", eis.phaseRad);
 
+  // Transmit Index
+  static char buffer[10];
+  dtostrf(_sweepCfg.SweepIndex,1,0,buffer);
+  pCharacteristicSweepIndex->setValue(buffer);
+  pCharacteristicSweepIndex->notify();
+
+  // Transmit Freq
+  dtostrf(_currentFreq,1,2,buffer);
+  pCharacteristicCurrentFreq->setValue(buffer);
+  pCharacteristicCurrentFreq->notify();
+
+  // Transmit Zreal
+  dtostrf(eis.real,1,4,buffer);
+  pCharacteristicReal->setValue(buffer);
+  pCharacteristicReal->notify();
+
+  // Transmit Zimag
+  dtostrf(eis.imag,1,4,buffer);
+  pCharacteristicImag->setValue(buffer);
+  pCharacteristicImag->notify();
+
   eisArr[_sweepCfg.SweepIndex + (_currentCycle * _sweepCfg.SweepPoints)] = eis; 
   // printf("Array Index: %d\n",_sweepCfg.SweepIndex + (_currentCycle * _sweepCfg.SweepPoints));
 
@@ -2106,6 +2127,8 @@ void HELPStat::AD5940_DFTMeasureEIS(void) {
   printf("%.4f,", eis.real);
   printf("%.4f,", eis.imag);
   printf("%.4f\n", eis.phaseRad);
+
+  
   // printf("rLoad: %.3f,", AD5940_ComplexMag(&rLoad));
   // printf("rzRload: %.3f\n", AD5940_ComplexMag(&rzRload));
   // printf("rLoad phase: %.3f,", AD5940_ComplexPhase(&rLoad));
@@ -2963,13 +2986,12 @@ void HELPStat::BLE_setup() {
   pServer->setCallbacks(new MyServerCallbacks());
 
   // Create the BLE Service
-  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID),45,0);
+  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID),60,0);
 
   // Create a BLE Characteristic
   pCharacteristicStart = pService->createCharacteristic(
                       CHARACTERISTIC_UUID_START,
-                      BLECharacteristic::PROPERTY_WRITE  |
-                      BLECharacteristic::PROPERTY_NOTIFY
+                      BLECharacteristic::PROPERTY_WRITE
                     );
   
   pCharacteristicRct = pService->createCharacteristic(
@@ -2987,8 +3009,8 @@ void HELPStat::BLE_setup() {
 
   pCharacteristicNumCycles = pService->createCharacteristic(
                       CHARACTERISTIC_UUID_NUMCYCLES,
-                      BLECharacteristic::PROPERTY_WRITE |
-                      BLECharacteristic::PROPERTY_NOTIFY
+                      BLECharacteristic::PROPERTY_WRITE  |
+                      BLECharacteristic::PROPERTY_NOTIFY 
                     );
 
   pCharacteristicNumPoints = pService->createCharacteristic(
@@ -2999,64 +3021,67 @@ void HELPStat::BLE_setup() {
 
   pCharacteristicStartFreq = pService->createCharacteristic(
                       CHARACTERISTIC_UUID_STARTFREQ,
-                      BLECharacteristic::PROPERTY_WRITE |
-                      BLECharacteristic::PROPERTY_NOTIFY
+                      BLECharacteristic::PROPERTY_WRITE
                     );
 
   pCharacteristicEndFreq = pService->createCharacteristic(
                       CHARACTERISTIC_UUID_ENDFREQ,
-                      BLECharacteristic::PROPERTY_WRITE |
-                      BLECharacteristic::PROPERTY_NOTIFY
+                      BLECharacteristic::PROPERTY_WRITE
                     ); 
 
   pCharacteristicRcalVal = pService->createCharacteristic(
                       CHARACTERISTIC_UUID_RCALVAL,
-                      BLECharacteristic::PROPERTY_WRITE |
-                      BLECharacteristic::PROPERTY_NOTIFY
+                      BLECharacteristic::PROPERTY_WRITE
                     );
 
   pCharacteristicBiasVolt = pService->createCharacteristic(
                       CHARACTERISTIC_UUID_BIASVOLT,
-                      BLECharacteristic::PROPERTY_WRITE |
-                      BLECharacteristic::PROPERTY_NOTIFY
-  );
-
+                      BLECharacteristic::PROPERTY_WRITE
+                    );
   pCharacteristicZeroVolt = pService->createCharacteristic(
                       CHARACTERISTIC_UUID_ZEROVOLT,
-                      BLECharacteristic::PROPERTY_WRITE |
-                      BLECharacteristic::PROPERTY_NOTIFY
-  );
-
+                      BLECharacteristic::PROPERTY_WRITE
+                    );
   pCharacteristicDelaySecs = pService->createCharacteristic(
                       CHARACTERISTIC_UUID_DELAYSECS,
-                      BLECharacteristic::PROPERTY_WRITE |
-                      BLECharacteristic::PROPERTY_NOTIFY
-  );
-
+                      BLECharacteristic::PROPERTY_WRITE
+                    );
   pCharacteristicExtGain = pService->createCharacteristic(
                       CHARACTERISTIC_UUID_EXTGAIN,
-                      BLECharacteristic::PROPERTY_WRITE |
-                      BLECharacteristic::PROPERTY_NOTIFY
-  );
-
+                      BLECharacteristic::PROPERTY_WRITE
+                    );
   pCharacteristicDacGain = pService->createCharacteristic(
                       CHARACTERISTIC_UUID_DACGAIN,
-                      BLECharacteristic::PROPERTY_WRITE |
-                      BLECharacteristic::PROPERTY_NOTIFY
-  );
-
+                      BLECharacteristic::PROPERTY_WRITE
+                    );
   pCharacteristicFolderName = pService->createCharacteristic(
                       CHARACTERISTIC_UUID_FOLDERNAME,
-                      BLECharacteristic::PROPERTY_WRITE |
-                      BLECharacteristic::PROPERTY_NOTIFY
-  );
-
+                      BLECharacteristic::PROPERTY_WRITE
+                    );
   pCharacteristicFileName = pService->createCharacteristic(
                       CHARACTERISTIC_UUID_FILENAME,
-                      BLECharacteristic::PROPERTY_WRITE |
+                      BLECharacteristic::PROPERTY_WRITE
+                    );
+  pCharacteristicSweepIndex = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_SWEEPINDEX,
+                      BLECharacteristic::PROPERTY_READ |
                       BLECharacteristic::PROPERTY_NOTIFY
-  );
-
+                    );
+  pCharacteristicCurrentFreq = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_CURRENTFREQ,
+                      BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  pCharacteristicReal = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_REAL,
+                      BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  pCharacteristicImag = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_IMAG,
+                      BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    );  
 
   // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
   // Create a BLE Descriptor
@@ -3068,7 +3093,6 @@ void HELPStat::BLE_setup() {
   pCharacteristicStartFreq->addDescriptor(new BLE2902());
   pCharacteristicEndFreq->addDescriptor(new BLE2902());
   pCharacteristicRcalVal->addDescriptor(new BLE2902());
-
   pCharacteristicBiasVolt->addDescriptor(new BLE2902());
   pCharacteristicZeroVolt->addDescriptor(new BLE2902());
   pCharacteristicDelaySecs->addDescriptor(new BLE2902());
@@ -3076,6 +3100,10 @@ void HELPStat::BLE_setup() {
   pCharacteristicDacGain->addDescriptor(new BLE2902());
   pCharacteristicFolderName->addDescriptor(new BLE2902());
   pCharacteristicFileName->addDescriptor(new BLE2902());
+  pCharacteristicSweepIndex->addDescriptor(new BLE2902());
+  pCharacteristicCurrentFreq->addDescriptor(new BLE2902());
+  pCharacteristicReal->addDescriptor(new BLE2902());
+  pCharacteristicImag->addDescriptor(new BLE2902());
 
   // Start the service
   pService->start();
@@ -3153,7 +3181,7 @@ void HELPStat::BLE_settings() {
     folderName = String((pCharacteristicFolderName->getValue()).c_str());
 
     fileName = String((pCharacteristicFileName->getValue()).c_str());
-  }while(!start_value && old_start_value == start_value && digitalRead(BUTTON)); // || digitalRead(BUTTON)
+  }while((!start_value || old_start_value == start_value)); // Maybe remove the old_start_value stuff? (&& digitalRead(BUTTON))
 }
 
 /*

@@ -341,17 +341,17 @@ void loop() {
   // blinkLED(3, 0);
     
   /* Main Testing Code - also used for current draw as a standard sweep measurement */
-  // demo.AD5940_TDD(test, gainSize); // This version uses the private variables for startFreq, endFreq, etc.
-  // demo.runSweep();
-  // std::vector<float> resistors = demo.calculateResistors();
-  // demo.BLE_transmitResistors();
-  // demo.saveDataEIS("folder-name-here", "file-name-here");
+  demo.AD5940_TDD(test, gainSize); // This version uses the private variables for startFreq, endFreq, etc.
+  demo.runSweep();
+  std::vector<float> resistors = demo.calculateResistors();
+  demo.BLE_transmitResistors();
+  demo.saveDataEIS("folder-name-here", "file-name-here");
   
 
 
     /* Current Draw Code - (no sweep but set for measurement)*/
-  demo.AD5940_TDD(startFreq, endFreq, 6, 0.0, 0.0, 9870, test, gainSize, 1, 1);
-  demo.configureFrequency(endFreq);
+  // demo.AD5940_TDD(startFreq, endFreq, 6, 0.0, 0.0, 9870, test, gainSize, 1, 1);
+  // demo.configureFrequency(endFreq);
 
     /* Main Testing Code - also used for current draw as a standard sweep measurement */
     /* Start, Stop, NumPoints, Vbias, Vzero, Rcal, gain array, gain size, Excitation Gain, DAC Gain*/
