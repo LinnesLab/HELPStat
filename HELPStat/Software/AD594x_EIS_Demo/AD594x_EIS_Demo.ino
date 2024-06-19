@@ -110,7 +110,7 @@ calHSTIA test[] = {
 /* Variables for function inputs */
 int gainSize = (int)sizeof(test) / sizeof(test[0]);
 
-uint32_t numCycles = 1; 
+uint32_t numCycles = 0; 
 uint32_t delaySecs = 0; 
 uint32_t numPoints = 6; 
 
@@ -276,8 +276,8 @@ void setup() {
   
   demo.BLE_setup();
   /* Optional inputs to establish pins for button and LEDs*/
-  pinMode(BUTTON, INPUT); 
   pinMode(LEDPIN, OUTPUT);
+  pinMode(BUTTON, INPUT);
   digitalWrite(LEDPIN, HIGH); // Initial LED State
   
   /* 
@@ -318,7 +318,7 @@ void setup() {
     /* Noise Measurements*/
 //    delay(2000);
 //    demo.ADCNoiseTest();
-//    demo.AD5940_HSTIARcal(HSTIARTIA_160K, 149700);    
+//    demo.AD5940_HSTIARcal(HSTIARTIA_160K, 149700); 
 
     /* If you want to save noise data - optional but might contribute to noise */
 //    demo.saveDataNoise("03-21-24", "5k-ohms");
@@ -327,7 +327,7 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly: 
   demo.BLE_settings();
-  // int buttonStatus = digitalRead(BUTTON); 
+  int buttonStatus = digitalRead(BUTTON); 
   delay(10); // Additional Debounce delay - 10 ms 
 
   // if(buttonStatus == LOW)
@@ -338,31 +338,21 @@ void loop() {
 
   demo.print_settings();
 
-  blinkLED(3, 0);
+  // blinkLED(3, 0);
     
   /* Main Testing Code - also used for current draw as a standard sweep measurement */
-  /* Start, Stop, NumPoints, Vbias, Vzero, Rcal, gain array, gain size, Excitation Gain, DAC Gain*/
-  // demo.AD5940_TDD(100000, 0.15, 6, 0.0, 0.0, 9870, test, gainSize, 1, 1);
-  demo.AD5940_TDD(test, gainSize); // This version uses the private variables for startFreq, endFreq, etc.
-  demo.runSweep();
-  // demo.AD5940_TDD(startFreq, endFreq, numPoints, biasVolt, zeroVolt, rcalVal, test, gainSize, extGain, dacGain); // This version specifies that values other than the private variables be used
-  // demo.runSweep(numCycles, delaySecs); // Run the Sweep
-  std::vector<float> resistors = demo.calculateResistors();
+  // demo.AD5940_TDD(test, gainSize); // This version uses the private variables for startFreq, endFreq, etc.
+  // demo.runSweep();
+  // std::vector<float> resistors = demo.calculateResistors();
+  // demo.BLE_transmitResistors();
+  // demo.saveDataEIS("folder-name-here", "file-name-here");
+  
 
-  // static char buffer[10];
-  // dtostrf(resistors[0],4,3,buffer);
-  // pCharacteristicRct->setValue(buffer);
-  // pCharacteristicRct->notify();
-  // dtostrf(resistors[1],4,3,buffer);
-  // pCharacteristicRs->setValue(buffer);
-  // pCharacteristicRs->notify();
-
-  demo.BLE_transmitResistors();
-  demo.saveDataEIS("folder-name-here", "file-name-here");
 
     /* Current Draw Code - (no sweep but set for measurement)*/
-//    demo.AD5940_TDD(startFreq, endFreq, 6, 0.0, 0.0, 9870, test, gainSize, 1, 1);
-//    demo.configureFrequency(startFreq);
+  demo.AD5940_TDD(startFreq, endFreq, 6, 0.0, 0.0, 9870, test, gainSize, 1, 1);
+  demo.configureFrequency(endFreq);
+
     /* Main Testing Code - also used for current draw as a standard sweep measurement */
     /* Start, Stop, NumPoints, Vbias, Vzero, Rcal, gain array, gain size, Excitation Gain, DAC Gain*/
     // demo.AD5940_TDD(startFreq, endFreq, numPoints, biasVolt, zeroVolt, rcalVal, test, gainSize, extGain, dacGain);
@@ -370,9 +360,9 @@ void loop() {
     // demo.saveDataEIS(folderName, fileName);
 
     /* After Impedance Measurement - drive LED High and get ready to restart measurement */
-  delay(500);
-  blinkLED(0, 1); 
-  Serial.println("Ready to go again!");
+  // delay(500);
+  // blinkLED(0, 1); 
+  // Serial.println("Ready to go again!");
   // }
 }
 

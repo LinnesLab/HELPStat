@@ -180,6 +180,10 @@ extern "C" {
 #define DAC12BITVOLT_1LSB   (2200.0f/4095)  //mV
 #define DAC6BITVOLT_1LSB    (DAC12BITVOLT_1LSB*64)  //mV
 
+// Push Button
+#define BUTTON 7
+
+
 // BLE Characteristics
 #define SERVICE_UUID                    "4fafc201-1fb5-459e-8fcc-c5c9c331914b" // Device UUID
 #define CHARACTERISTIC_UUID_START       "beb5483e-36e1-4688-b7f5-ea07361b26a8" // UUIDs for different parameters

@@ -3088,6 +3088,8 @@ void HELPStat::BLE_setup() {
   pAdvertising->setMinPreferred(0x12);
   BLEDevice::startAdvertising();
   Serial.println("Waiting a client connection to notify...");
+
+  pinMode(BUTTON, INPUT); 
 }
 
 /*
@@ -3151,7 +3153,7 @@ void HELPStat::BLE_settings() {
     folderName = String((pCharacteristicFolderName->getValue()).c_str());
 
     fileName = String((pCharacteristicFileName->getValue()).c_str());
-  }while(!start_value || old_start_value == start_value); // || digitalRead(BUTTON)
+  }while(!start_value && old_start_value == start_value && digitalRead(BUTTON)); // || digitalRead(BUTTON)
 }
 
 /*
