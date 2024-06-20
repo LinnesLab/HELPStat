@@ -3167,7 +3167,7 @@ void HELPStat::BLE_settings() {
   This function sends the calculated Rct and Rs values to an external BLE client. The notify
   flags for these characteristics are also set to inform the client that data has been updated.
 */
-void HELPStat::BLE_transmitResistors() {
+void HELPStat::BLE_transmitResults() {
   static char buffer[10];
   dtostrf(_calculated_Rct,4,3,buffer);
   pCharacteristicRct->setValue(buffer);
@@ -3177,26 +3177,32 @@ void HELPStat::BLE_transmitResistors() {
   pCharacteristicRs->setValue(buffer);
   pCharacteristicRs->notify();
 
+  Serial.println(_sweepCfg.SweepPoints);
+  Serial.println(_numCycles);
+
+  // Transmit freq, Zreal, and Zimag for all sampled points
   for(uint32_t i = 0; i < _sweepCfg.SweepPoints; i++) {
     for(uint32_t j = 0; j <= _numCycles; j++) {
       impStruct eis;
       eis = eisArr[i + (j * _sweepCfg.SweepPoints)];
+      
+      // Transmit Frequency
+      dtostrf(eis.freq,1,2,buffer);
+      pCharacteristicCurrentFreq->setValue(buffer);
+      pCharacteristicCurrentFreq->notify();
 
-      // dtostrf(eis.SweepIndex,1,0,buffer);
-      // pCharacteristicSweepIndex->setValue(buffer);
-      // pCharacteristicSweepIndex->notify();
-
-      // dtostrf(eis.frequency,1,2,buffer);
-      // pCharacteristicCurrentFreq->setValue(buffer);
-      // pCharacteristicCurrentFreq->notify();
-
+      // Transmit Real Impedence
       dtostrf(eis.real,1,4,buffer);
       pCharacteristicReal->setValue(buffer);
       pCharacteristicReal->notify();
 
+      // Transmit Imaginary Impedence
       dtostrf(eis.imag,1,4,buffer);
       pCharacteristicImag->setValue(buffer);
       pCharacteristicImag->notify();
+
+      // Necessary delay so all BLE calls finish. Not sure why it works, but it does; DON'T TOUCH!
+      delay(50);
     }
   }
 

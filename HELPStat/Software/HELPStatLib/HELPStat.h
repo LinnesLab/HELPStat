@@ -255,16 +255,16 @@ class HELPStat {
         bool _isSD;
 
         // Rct/Rs estimates
-        float _rct_estimate = 5000; // Initialize w/ default values 
-        float _rs_estimate  = 50;
+        float _rct_estimate = 150000; // Initialize w/ default values 
+        float _rs_estimate  = 150;
 
         // Array for EIS data
         impStruct eisArr[ARRAY_SIZE];
 
         // Keeping track of cycles 
-        uint32_t _numCycles = 1; // Initialize w/ default values  
+        uint32_t _numCycles = 0; // Initialize w/ default values  
         uint32_t _currentCycle;
-        uint32_t _numPoints = 6; // Initialize w/ default values 
+        uint32_t _numPoints = 4; // Initialize w/ default values 
 
         // Gain Calibration Array
         calHSTIA _gainArr[ARRAY_SIZE];
@@ -387,7 +387,7 @@ class HELPStat {
 
         void BLE_setup(void);
         void BLE_settings(void);
-        void BLE_transmitResistors(void);
+        void BLE_transmitResults(void);
 
         void print_settings(void);       
 };  

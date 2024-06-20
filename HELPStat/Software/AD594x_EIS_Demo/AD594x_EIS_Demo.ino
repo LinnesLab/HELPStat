@@ -326,7 +326,7 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly: 
-  //demo.BLE_settings();
+  demo.BLE_settings();
   int buttonStatus = digitalRead(BUTTON); 
   delay(10); // Additional Debounce delay - 10 ms 
 
@@ -344,7 +344,7 @@ void loop() {
   demo.AD5940_TDD(test, gainSize); // This version uses the private variables for startFreq, endFreq, etc.
   demo.runSweep();
   std::vector<float> resistors = demo.calculateResistors();
-  demo.BLE_transmitResistors();
+  demo.BLE_transmitResults();
   demo.saveDataEIS("folder-name-here", "file-name-here");
   
 
@@ -360,9 +360,9 @@ void loop() {
     // demo.saveDataEIS(folderName, fileName);
 
     /* After Impedance Measurement - drive LED High and get ready to restart measurement */
-  // delay(500);
-  // blinkLED(0, 1); 
-  // Serial.println("Ready to go again!");
+  delay(500);
+  blinkLED(0, 1); 
+  Serial.println("Ready to go again!");
   // }
 }
 
