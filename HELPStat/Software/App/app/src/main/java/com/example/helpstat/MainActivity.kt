@@ -19,6 +19,11 @@ import androidx.core.app.ActivityCompat
 private const val PERMISSION_REQUEST_CODE = 1
 
 class MainActivity : ComponentActivity() {
+    // listReal, listImag, listFreq data to plot
+    private val listReal = mutableListOf<Float>()
+    private val listImag = mutableListOf<Float>()
+    private val listFreq = mutableListOf<Float>()
+    
     private val bluetoothAdapter: BluetoothAdapter by lazy {
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothManager.adapter
@@ -34,7 +39,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -42,6 +46,17 @@ class MainActivity : ComponentActivity() {
         findViewById<Button>(R.id.button_connect)
             .setOnClickListener {
                 startBleScan()
+//                listReal.add(1f)
+//                Log.d("TAG",listReal.joinToString())
+            }
+
+        findViewById<Button>(R.id.button_start)
+            .setOnClickListener {
+                // Reset data when taking a new sample
+                listFreq.clear()
+                listReal.clear()
+                listImag.clear()
+//                Log.d("TAG",listReal.joinToString())
             }
     }
 
@@ -77,18 +92,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onResume() {
-        super.onResume()
-        if (!bluetoothAdapter.isEnabled) {
-            promptEnableBluetooth()
-        }
-    }
+//    override fun onResume() {
+//        super.onResume()
+//        if (!bluetoothAdapter.isEnabled) {
+//            promptEnableBluetooth()
+//        }
+//    }
 
     private fun startBleScan() {
         if (!hasRequiredBluetoothPermissions()) {
             requestRelevantRuntimePermissions()
         } else { /* TODO: Actually perform scan */ }
     }
+
     private fun Activity.requestRelevantRuntimePermissions() {
         if (hasRequiredBluetoothPermissions()) { return }
         when {
