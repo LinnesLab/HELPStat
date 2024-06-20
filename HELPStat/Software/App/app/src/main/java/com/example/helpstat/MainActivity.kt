@@ -8,6 +8,7 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.widget.Button
@@ -15,6 +16,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
+import com.androidplot.xy.LineAndPointFormatter
+import com.androidplot.xy.SimpleXYSeries
+import com.androidplot.xy.XYPlot
+import com.androidplot.xy.XYSeries
 
 private const val PERMISSION_REQUEST_CODE = 1
 
@@ -39,6 +44,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    private fun redrawNyquist() {
+        findViewById<XYPlot>(R.id.xy_Nyquist)
+            .clear()
+        val nyquist : XYSeries = SimpleXYSeries(listReal,listImag,"Impedance Data")
+        val format = LineAndPointFormatter(Color.BLUE, Color.BLACK, null, null)
+        findViewById<XYPlot>(R.id.xy_Nyquist)
+            .addSeries(nyquist,format)
+        findViewById<XYPlot>(R.id.xy_Nyquist)
+            .redraw()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -46,8 +62,16 @@ class MainActivity : ComponentActivity() {
         findViewById<Button>(R.id.button_connect)
             .setOnClickListener {
                 startBleScan()
-//                listReal.add(1f)
+                listReal.add(0.5f)
+                listImag.add(0.5f)
+                listReal.add(1f)
+                listImag.add(1f)
 //                Log.d("TAG",listReal.joinToString())
+            }
+
+        findViewById<Button>(R.id.button_openSettings)
+            .setOnClickListener {
+                redrawNyquist()
             }
 
         findViewById<Button>(R.id.button_start)
