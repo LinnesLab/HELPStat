@@ -22,13 +22,18 @@ import com.androidplot.xy.XYPlot
 import com.androidplot.xy.XYSeries
 
 private const val PERMISSION_REQUEST_CODE = 1
-
+/*
+    NOTE!!! Anything relating to BLE communication can be found at
+    https://punchthrough.com/android-ble-guide/. When I wrote this code,
+    only God and I knew what this code does. Now, God only knows.
+ */
 class MainActivity : ComponentActivity() {
     // listReal, listImag, listFreq data to plot
     private val listReal = mutableListOf<Float>()
     private val listImag = mutableListOf<Float>()
     private val listFreq = mutableListOf<Float>()
-    
+
+    // Some Bluetooth Values. See https://punchthrough.com/android-ble-guide/
     private val bluetoothAdapter: BluetoothAdapter by lazy {
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothManager.adapter
@@ -44,17 +49,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun redrawNyquist() {
-        findViewById<XYPlot>(R.id.xy_Nyquist)
-            .clear()
-        val nyquist : XYSeries = SimpleXYSeries(listReal,listImag,"Impedance Data")
-        val format = LineAndPointFormatter(Color.BLUE, Color.BLACK, null, null)
-        findViewById<XYPlot>(R.id.xy_Nyquist)
-            .addSeries(nyquist,format)
-        findViewById<XYPlot>(R.id.xy_Nyquist)
-            .redraw()
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -62,16 +56,15 @@ class MainActivity : ComponentActivity() {
         findViewById<Button>(R.id.button_connect)
             .setOnClickListener {
                 startBleScan()
-                listReal.add(0.5f)
-                listImag.add(0.5f)
-                listReal.add(1f)
-                listImag.add(1f)
-//                Log.d("TAG",listReal.joinToString())
+                // Log.d("TAG",listReal.joinToString())
             }
 
         findViewById<Button>(R.id.button_openSettings)
             .setOnClickListener {
-                redrawNyquist()
+                // Open Settings
+                Intent(this, SettingsActivity::class.java).also {
+                    startActivity(it)
+                }
             }
 
         findViewById<Button>(R.id.button_start)
@@ -80,10 +73,14 @@ class MainActivity : ComponentActivity() {
                 listFreq.clear()
                 listReal.clear()
                 listImag.clear()
-//                Log.d("TAG",listReal.joinToString())
+
+                // Draw an empty Nyquist (visualizes that new sample has started)
+                redrawNyquist()
+                // Log.d("TAG",listReal.joinToString())
             }
     }
 
+    // Bluetooth Function. Requests that User has necessary bluetooth functions
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<String>,
@@ -123,12 +120,14 @@ class MainActivity : ComponentActivity() {
 //        }
 //    }
 
+    // Scans for BLE devices (i.e. HELPStat)
     private fun startBleScan() {
         if (!hasRequiredBluetoothPermissions()) {
             requestRelevantRuntimePermissions()
         } else { /* TODO: Actually perform scan */ }
     }
 
+    // Checks if App has all permissions enabled
     private fun Activity.requestRelevantRuntimePermissions() {
         if (hasRequiredBluetoothPermissions()) { return }
         when {
@@ -157,6 +156,7 @@ class MainActivity : ComponentActivity() {
             }
             .show()
     }
+    // No idea what this does. See https://punchthrough.com/android-ble-guide/
     @RequiresApi(Build.VERSION_CODES.S)
     private fun requestBluetoothPermissions() = runOnUiThread {
         AlertDialog.Builder(this)
@@ -197,5 +197,17 @@ class MainActivity : ComponentActivity() {
                 bluetoothEnablingResult.launch(this)
             }
         }
+    }
+
+    // Function that draws Nyquist
+    private fun redrawNyquist() {
+        findViewById<XYPlot>(R.id.xy_Nyquist)
+            .clear()
+        val nyquist : XYSeries = SimpleXYSeries(listReal,listImag,"Impedance Data")
+        val format = LineAndPointFormatter(Color.BLUE, Color.BLACK, null, null)
+        findViewById<XYPlot>(R.id.xy_Nyquist)
+            .addSeries(nyquist,format)
+        findViewById<XYPlot>(R.id.xy_Nyquist)
+            .redraw()
     }
 }

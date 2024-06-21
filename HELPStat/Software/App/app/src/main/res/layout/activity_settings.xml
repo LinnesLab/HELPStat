@@ -12,20 +12,22 @@
         android:id="@+id/button_applySettings"
         android:layout_width="0dp"
         android:layout_height="64dp"
-        android:text="Apply Settings"
+        android:text="Apply"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
+        app:layout_constraintEnd_toStartOf="@+id/button_exitSettings"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/scrollView2"
         app:layout_constraintStart_toStartOf="parent" />
 
     <ScrollView
+        android:id="@+id/scrollView2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/button_applySettings"
+        android:fillViewport="true"
         android:paddingVertical="32dp"
-        tools:layout_editor_absoluteX="10dp"
-        android:fillViewport="true" >
+        app:layout_constraintBottom_toTopOf="@id/button_applySettings"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:layout_editor_absoluteX="10dp">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
@@ -369,5 +371,15 @@
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>
+
+    <Button
+        android:id="@+id/button_exitSettings"
+        android:layout_width="0dp"
+        android:layout_height="64dp"
+        android:text="Home"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@+id/button_applySettings" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
