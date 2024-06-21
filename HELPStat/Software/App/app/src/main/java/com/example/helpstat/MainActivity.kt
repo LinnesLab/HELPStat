@@ -1,6 +1,7 @@
 package com.example.helpstat
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.bluetooth.BluetoothAdapter
@@ -113,12 +114,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-//    override fun onResume() {
-//        super.onResume()
-//        if (!bluetoothAdapter.isEnabled) {
-//            promptEnableBluetooth()
-//        }
-//    }
+    override fun onResume() {
+        super.onResume()
+        if (!bluetoothAdapter.isEnabled) {
+            promptEnableBluetooth()
+        }
+    }
 
     // Scans for BLE devices (i.e. HELPStat)
     private fun startBleScan() {
@@ -198,6 +199,8 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    @SuppressLint("MissingPermission") // Check performed inside extension fun
 
     // Function that draws Nyquist
     private fun redrawNyquist() {
