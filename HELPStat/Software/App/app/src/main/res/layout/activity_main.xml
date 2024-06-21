@@ -31,13 +31,13 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
     <com.androidplot.xy.XYPlot
-        style="@style/APDefacto.Light"
         android:id="@+id/xy_Nyquist"
+        style="@style/APDefacto.Light"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:title="Nyquist Plot"
-        app:layout_constraintBottom_toTopOf="@+id/button_start"
+        app:layout_constraintBottom_toTopOf="@+id/scan_results_recycler_view"
         app:layout_constraintTop_toTopOf="parent"
+        app:title="Nyquist Plot"
         tools:layout_editor_absoluteX="10dp" />
 
     <TextView
@@ -80,4 +80,12 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textView16" />
 
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/scan_results_recycler_view"
+        android:layout_width="0dp"
+        android:layout_height="64dp"
+        app:layout_constraintBottom_toTopOf="@+id/button_start"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:listitem="@layout/row_scan_result" />
 </androidx.constraintlayout.widget.ConstraintLayout>

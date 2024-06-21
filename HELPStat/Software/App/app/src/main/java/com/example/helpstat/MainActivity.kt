@@ -7,6 +7,7 @@ import android.app.AlertDialog
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanCallback
+import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
@@ -15,16 +16,22 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.os.ParcelUuid
 import android.util.Log
 import android.widget.Button
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
+import androidx.annotation.UiThread
 import androidx.core.app.ActivityCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.SimpleItemAnimator
 import com.androidplot.xy.LineAndPointFormatter
 import com.androidplot.xy.SimpleXYSeries
 import com.androidplot.xy.XYPlot
 import com.androidplot.xy.XYSeries
+import com.example.helpstat.databinding.ActivityMainBinding
 
 private const val PERMISSION_REQUEST_CODE = 1
 /*
@@ -37,6 +44,10 @@ class MainActivity : ComponentActivity() {
     private val listReal = mutableListOf<Float>()
     private val listImag = mutableListOf<Float>()
     private val listFreq = mutableListOf<Float>()
+
+    // Scanning and Displaying BLE Devices
+    private lateinit var binding: ActivityMainBinding
+    val filter = ScanFilter.Builder().setDeviceName("HELPStat").build()
 
     // Some Bluetooth Values. See https://punchthrough.com/android-ble-guide/
     private val bluetoothAdapter: BluetoothAdapter by lazy {
@@ -66,9 +77,22 @@ class MainActivity : ComponentActivity() {
 
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
-            with(result.device) {
-                Log.i("ScanCallback", "Found BLE device! Name: ${name ?: "Unnamed"}, address: $address")
+            val indexQuery = scanResults.indexOfFirst { it.device.address == result.device.address }
+            if (indexQuery != -1) { // Repeat scan
+                scanResults[indexQuery] = result
+                scanResultAdapter.notifyItemChanged(indexQuery)
+            } else {
+                with(result.device) {
+                    Log.i(
+                        "ScanCallback",
+                        "Found BLE device! Name: ${name ?: "Unnamed"}, address: $address")
+                }
+                scanResults.add(result)
+                scanResultAdapter.notifyItemInserted(scanResults.size - 1)
             }
+        }
+        override fun onScanFailed(errorCode: Int) {
+            Log.e("ScanCallback","onScanFailed: code $errorCode")
         }
     }
 
@@ -78,12 +102,20 @@ class MainActivity : ComponentActivity() {
             runOnUiThread { findViewById<Button>(R.id.button_connect).text = if (value) "Stop BLE Scan" else "Scan BLE Devices" }
         }
 
+    private val scanResults = mutableListOf<ScanResult>()
+    private val scanResultAdapter: ScanResultAdapter by lazy {
+        ScanResultAdapter(scanResults) {
+            // TODO: Implement
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
-        findViewById<Button>(R.id.button_connect)
-            .setOnClickListener {
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        val buttonConnect = findViewById<Button>(R.id.button_connect)
+        binding.buttonConnect.setOnClickListener {
                 if (isScanning) {
                     stopBleScan()
                 } else {
@@ -91,6 +123,7 @@ class MainActivity : ComponentActivity() {
                 }
                 // Log.d("TAG",listReal.joinToString())
             }
+        setupRecyclerView()
 
         findViewById<Button>(R.id.button_openSettings)
             .setOnClickListener {
@@ -153,12 +186,34 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // Display Devices
+    @UiThread
+    private fun setupRecyclerView() {
+        binding.scanResultsRecyclerView.apply {
+            adapter = scanResultAdapter
+
+            layoutManager = LinearLayoutManager(
+                this@MainActivity,
+                RecyclerView.VERTICAL,
+                false
+            )
+            isNestedScrollingEnabled = false
+            itemAnimator.let {
+                if (it is SimpleItemAnimator) {
+                    it.supportsChangeAnimations = false
+                }
+            }
+        }
+    }
+
     // Scans for BLE devices (i.e. HELPStat)
     private fun startBleScan() {
         if (!hasRequiredBluetoothPermissions()) {
             requestRelevantRuntimePermissions()
         } else {
-            bleScanner.startScan(null, scanSettings, scanCallback)
+            scanResults.clear()
+            scanResultAdapter.notifyDataSetChanged()
+            bleScanner.startScan(listOf(filter), scanSettings, scanCallback)
             isScanning = true
         }
     }
