@@ -5,6 +5,11 @@ import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCallback
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
@@ -16,7 +21,6 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
-import android.os.ParcelUuid
 import android.util.Log
 import android.widget.Button
 import androidx.activity.ComponentActivity
@@ -27,11 +31,14 @@ import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
+import com.androidplot.BuildConfig
 import com.androidplot.xy.LineAndPointFormatter
 import com.androidplot.xy.SimpleXYSeries
 import com.androidplot.xy.XYPlot
 import com.androidplot.xy.XYSeries
 import com.example.helpstat.databinding.ActivityMainBinding
+import timber.log.Timber
+import java.util.UUID
 
 private const val PERMISSION_REQUEST_CODE = 1
 /*
@@ -104,13 +111,25 @@ class MainActivity : ComponentActivity() {
 
     private val scanResults = mutableListOf<ScanResult>()
     private val scanResultAdapter: ScanResultAdapter by lazy {
-        ScanResultAdapter(scanResults) {
-            // TODO: Implement
+        ScanResultAdapter(scanResults) { result ->
+            if (isScanning) {
+                stopBleScan()
+            }
+
+            with(result.device) {
+                Log.d("LOG:","Connecting to $address")
+                ConnectionManager.connect(this, this@MainActivity)
+            }
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (BuildConfig.DEBUG) { // <- NOT MY CONFIG
+            Timber.plant(Timber.DebugTree())
+        }
+
         setContentView(R.layout.activity_main)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -142,7 +161,6 @@ class MainActivity : ComponentActivity() {
 
                 // Draw an empty Nyquist (visualizes that new sample has started)
                 redrawNyquist()
-                // Log.d("TAG",listReal.joinToString())
             }
     }
 

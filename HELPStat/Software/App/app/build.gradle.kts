@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.material)
     implementation("com.androidplot:androidplot-core:1.5.10")
+    implementation("com.jakewharton.timber:timber:4.7.1")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
