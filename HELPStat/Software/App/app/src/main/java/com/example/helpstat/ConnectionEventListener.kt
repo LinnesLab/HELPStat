@@ -20,7 +20,6 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCharacteristic
 import android.bluetooth.BluetoothGattDescriptor
-import java.util.UUID
 
 /** A listener containing callback methods to be registered with [ConnectionManager].*/
 class ConnectionEventListener {
@@ -81,13 +80,4 @@ class ConnectionEventListener {
     )? = null
 
     var onMtuChanged: ((device: BluetoothDevice, newMtu: Int) -> Unit)? = null
-
-    val characteristic_start = BluetoothGattCharacteristic(
-        UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8"),
-        BluetoothGattCharacteristic.PROPERTY_WRITE,
-        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
-    val characteristic_rct   = BluetoothGattCharacteristic(
-        UUID.fromString("a5d42ee9-0551-4a23-a1b7-74eea28aa083"),
-        BluetoothGattCharacteristic.PROPERTY_NOTIFY + BluetoothGattCharacteristic.PROPERTY_READ,
-        BluetoothGattCharacteristic.PERMISSION_READ)
 }

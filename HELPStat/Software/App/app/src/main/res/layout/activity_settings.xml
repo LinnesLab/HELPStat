@@ -8,24 +8,13 @@
     android:orientation="vertical"
     android:padding="10dp">
 
-    <Button
-        android:id="@+id/button_applySettings"
-        android:layout_width="0dp"
-        android:layout_height="64dp"
-        android:text="Apply"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/button_exitSettings"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/scrollView2"
-        app:layout_constraintStart_toStartOf="parent" />
-
     <ScrollView
         android:id="@+id/scrollView2"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:fillViewport="true"
         android:paddingVertical="32dp"
-        app:layout_constraintBottom_toTopOf="@id/button_applySettings"
+        app:layout_constraintBottom_toTopOf="@+id/button_exitSettings"
         app:layout_constraintTop_toTopOf="parent"
         tools:layout_editor_absoluteX="10dp">
 
@@ -52,8 +41,7 @@
                 android:hint="rct_estimate"
                 android:inputType="numberDecimal"
                 android:text="5000"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintEnd_toStartOf="@+id/button_applyRct"
                 app:layout_constraintStart_toEndOf="@+id/textView2"
                 app:layout_constraintTop_toTopOf="parent" />
 
@@ -76,8 +64,7 @@
                 android:hint="rs_estimate"
                 android:inputType="numberDecimal"
                 android:text="150"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintEnd_toStartOf="@+id/button_applyRs"
                 app:layout_constraintStart_toEndOf="@+id/textView3"
                 app:layout_constraintTop_toBottomOf="@+id/editText_rct_estimate" />
 
@@ -100,8 +87,7 @@
                 android:hint="rcalVal"
                 android:inputType="numberDecimal"
                 android:text="1000"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintEnd_toStartOf="@+id/button_applyRcalVal"
                 app:layout_constraintStart_toEndOf="@+id/textView4"
                 app:layout_constraintTop_toBottomOf="@+id/editText_rs_estimate" />
 
@@ -109,7 +95,7 @@
                 android:id="@+id/textView5"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Start Frequency (Hz)"
+                android:text="Start Freq (Hz)"
                 android:textColor="@color/black"
                 android:textSize="18sp"
                 app:layout_constraintBaseline_toBaselineOf="@+id/editText_startFreq"
@@ -124,8 +110,7 @@
                 android:hint="startFreq"
                 android:inputType="numberDecimal"
                 android:text="100000"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintEnd_toStartOf="@+id/button_applyStartFreq"
                 app:layout_constraintStart_toEndOf="@+id/textView5"
                 app:layout_constraintTop_toBottomOf="@+id/editText_rcalVal" />
 
@@ -133,7 +118,7 @@
                 android:id="@+id/textView6"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="End Frequency (Hz)"
+                android:text="End Freq (Hz)"
                 android:textColor="@color/black"
                 android:textSize="18sp"
                 app:layout_constraintBaseline_toBaselineOf="@+id/editText_endFreq"
@@ -148,8 +133,7 @@
                 android:hint="endFreq"
                 android:inputType="numberDecimal"
                 android:text="1"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintEnd_toStartOf="@+id/button_applyEndFreq"
                 app:layout_constraintStart_toEndOf="@+id/textView6"
                 app:layout_constraintTop_toBottomOf="@+id/editText_startFreq" />
 
@@ -157,7 +141,7 @@
                 android:id="@+id/textView7"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Points per Decade"
+                android:text="Points/Dec"
                 android:textColor="@color/black"
                 android:textSize="18sp"
                 app:layout_constraintBaseline_toBaselineOf="@+id/editText_numPoints"
@@ -172,8 +156,7 @@
                 android:hint="numPoints"
                 android:inputType="number"
                 android:text="6"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintEnd_toStartOf="@+id/button_applyNumPoints"
                 app:layout_constraintStart_toEndOf="@+id/textView7"
                 app:layout_constraintTop_toBottomOf="@+id/editText_endFreq" />
 
@@ -181,7 +164,7 @@
                 android:id="@+id/textView8"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Number of Cycles"
+                android:text="Cycles"
                 android:textColor="@color/black"
                 android:textSize="18sp"
                 app:layout_constraintBaseline_toBaselineOf="@+id/editText_numCycles"
@@ -196,8 +179,7 @@
                 android:hint="numCycles"
                 android:inputType="number"
                 android:text="1"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintEnd_toStartOf="@+id/button_applyNumCycles"
                 app:layout_constraintStart_toEndOf="@+id/textView8"
                 app:layout_constraintTop_toBottomOf="@+id/editText_numPoints" />
 
@@ -220,8 +202,7 @@
                 android:hint="folderName"
                 android:inputType="text"
                 android:text="folder"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintEnd_toStartOf="@+id/button_applyFolderName"
                 app:layout_constraintStart_toEndOf="@+id/textView9"
                 app:layout_constraintTop_toBottomOf="@+id/editText_numCycles" />
 
@@ -244,8 +225,7 @@
                 android:hint="fileName"
                 android:inputType="text"
                 android:text="file"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintEnd_toStartOf="@+id/button_applyFileName"
                 app:layout_constraintStart_toEndOf="@+id/textView10"
                 app:layout_constraintTop_toBottomOf="@+id/editText_folderName" />
 
@@ -268,8 +248,7 @@
                 android:hint="extGain"
                 android:inputType="number"
                 android:text="1"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintEnd_toStartOf="@+id/button_applyExtGain"
                 app:layout_constraintStart_toEndOf="@+id/textView11"
                 app:layout_constraintTop_toBottomOf="@+id/editText_fileName" />
 
@@ -292,8 +271,7 @@
                 android:hint="dacGain"
                 android:inputType="number"
                 android:text="1"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintEnd_toStartOf="@+id/button_applyDacGain"
                 app:layout_constraintStart_toEndOf="@+id/textView12"
                 app:layout_constraintTop_toBottomOf="@+id/editText_extGain" />
 
@@ -316,8 +294,7 @@
                 android:hint="zeroVolt"
                 android:inputType="numberDecimal"
                 android:text="0"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintEnd_toStartOf="@+id/button_applyZeroVolt"
                 app:layout_constraintStart_toEndOf="@+id/textView13"
                 app:layout_constraintTop_toBottomOf="@+id/editText_dacGain" />
 
@@ -340,8 +317,7 @@
                 android:hint="biasVolt"
                 android:inputType="numberDecimal"
                 android:text="0"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintEnd_toStartOf="@+id/button_applyBiasVolt"
                 app:layout_constraintStart_toEndOf="@+id/textView14"
                 app:layout_constraintTop_toBottomOf="@+id/editText_zeroVolt" />
 
@@ -364,10 +340,121 @@
                 android:hint="delaySecs"
                 android:inputType="number"
                 android:text="0"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintHorizontal_bias="0.5"
+                app:layout_constraintEnd_toStartOf="@+id/button_applyDelaySecs"
                 app:layout_constraintStart_toEndOf="@+id/textView15"
                 app:layout_constraintTop_toBottomOf="@+id/editText_biasVolt" />
+
+            <Button
+                android:id="@+id/button_applyRct"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apply"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_rct_estimate"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/button_applyRs"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apply"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_rs_estimate"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/button_applyRcalVal"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apply"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_rcalVal"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/button_applyStartFreq"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apply"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_startFreq"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/button_applyEndFreq"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apply"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_endFreq"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/button_applyNumPoints"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apply"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_numPoints"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/button_applyNumCycles"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apply"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_numCycles"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/button_applyFolderName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apply"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_folderName"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/button_applyFileName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apply"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_fileName"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/button_applyExtGain"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apply"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_extGain"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/button_applyDacGain"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apply"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_dacGain"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/button_applyZeroVolt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apply"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_zeroVolt"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/button_applyBiasVolt"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apply"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_biasVolt"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <Button
+                android:id="@+id/button_applyDelaySecs"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Apply"
+                app:layout_constraintBaseline_toBaselineOf="@+id/editText_delaySecs"
+                app:layout_constraintEnd_toEndOf="parent" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>
@@ -379,7 +466,6 @@
         android:text="Home"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.5"
-        app:layout_constraintStart_toEndOf="@+id/button_applySettings" />
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

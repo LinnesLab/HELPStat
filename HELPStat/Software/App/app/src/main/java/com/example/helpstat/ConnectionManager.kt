@@ -80,7 +80,7 @@ object ConnectionManager {
     val characteristic_rcalval = BluetoothGattCharacteristic(UUID.fromString("4f7d237e-a358-439e-8771-4ab7f81473fa"),
         BluetoothGattCharacteristic.PROPERTY_WRITE,
         BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
-    val characteristic_dacGain = BluetoothGattCharacteristic(UUID.fromString("4f7d237e-a358-439e-8771-4ab7f81473fa"),
+    val characteristic_dacGain = BluetoothGattCharacteristic(UUID.fromString("36377d50-6ba7-4cc1-825a-42746c4028dc"),
         BluetoothGattCharacteristic.PROPERTY_WRITE,
         BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
     val characteristic_extGain = BluetoothGattCharacteristic(UUID.fromString("e17e690a-16e8-4c70-b958-73e41d4afff0"),
