@@ -109,6 +109,7 @@ class MainActivity : ComponentActivity() {
             runOnUiThread { findViewById<Button>(R.id.button_connect).text = if (value) "Stop BLE Scan" else "Scan BLE Devices" }
         }
 
+    private lateinit var connected_device : BluetoothDevice
     private val scanResults = mutableListOf<ScanResult>()
     private val scanResultAdapter: ScanResultAdapter by lazy {
         ScanResultAdapter(scanResults) { result ->
@@ -119,6 +120,7 @@ class MainActivity : ComponentActivity() {
             with(result.device) {
                 Log.d("LOG:","Connecting to $address")
                 ConnectionManager.connect(this, this@MainActivity)
+                connected_device = this
             }
         }
     }
@@ -154,6 +156,13 @@ class MainActivity : ComponentActivity() {
 
         findViewById<Button>(R.id.button_start)
             .setOnClickListener {
+                // Sends a "START" signal
+                ConnectionManager.writeCharacteristic(connected_device,
+                    BluetoothGattCharacteristic(UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8"),
+                    BluetoothGattCharacteristic.PROPERTY_WRITE,
+                    BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT),
+                    byteArrayOf(1))
+
                 // Reset data when taking a new sample
                 listFreq.clear()
                 listReal.clear()
@@ -161,6 +170,15 @@ class MainActivity : ComponentActivity() {
 
                 // Draw an empty Nyquist (visualizes that new sample has started)
                 redrawNyquist()
+
+                // Reset
+                ConnectionManager.writeCharacteristic(connected_device,
+                    BluetoothGattCharacteristic(UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8"),
+                        BluetoothGattCharacteristic.PROPERTY_WRITE,
+                        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT),
+                    byteArrayOf(0))
+
+                // Log.d("TAG",listReal.joinToString())
             }
     }
 
