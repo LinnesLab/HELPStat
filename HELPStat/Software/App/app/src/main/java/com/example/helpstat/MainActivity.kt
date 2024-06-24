@@ -49,17 +49,12 @@ private const val PERMISSION_REQUEST_CODE = 1
  */
 object main_activity {
     lateinit var connected_device : BluetoothDevice
+    var listReal = mutableListOf<Float>()
+    var listImag = mutableListOf<Float>()
+    var listFreq = mutableListOf<Float>()
 }
 
 class MainActivity : ComponentActivity() {
-    // listReal, listImag, listFreq data to plot
-    private val listReal = mutableListOf<Float>()
-    private val listImag = mutableListOf<Float>()
-    private val listFreq = mutableListOf<Float>()
-
-    // Characteristics
-
-
     // Scanning and Displaying BLE Devices
     private lateinit var binding: ActivityMainBinding
     val filter = ScanFilter.Builder().setDeviceName("HELPStat").build()
@@ -165,19 +160,23 @@ class MainActivity : ComponentActivity() {
             .setOnClickListener {
                 // Set to notify of changes
                 ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_rct)
+                ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_rs)
+                ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_real)
+                ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_imag)
+                ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_currFreq)
 
                 // Sends a "START" signal
                 ConnectionManager.writeCharacteristic(main_activity.connected_device,
                     ConnectionManager.characteristic_start,
                     byteArrayOf(1))
 
-                // Reset data when taking a new sample
-                listFreq.clear()
-                listReal.clear()
-                listImag.clear()
-
                 // Draw an empty Nyquist (visualizes that new sample has started)
                 redrawNyquist()
+
+                // Reset data when taking a new sample
+                main_activity.listFreq.clear()
+                main_activity.listReal.clear()
+                main_activity.listImag.clear()
 
                 // Reset
                 ConnectionManager.writeCharacteristic(main_activity.connected_device,
@@ -340,10 +339,10 @@ class MainActivity : ComponentActivity() {
     @SuppressLint("MissingPermission") // Check performed inside extension fun
 
     // Function that draws Nyquist
-    private fun redrawNyquist() {
+    fun redrawNyquist() {
         findViewById<XYPlot>(R.id.xy_Nyquist)
             .clear()
-        val nyquist : XYSeries = SimpleXYSeries(listReal,listImag,"Impedance Data")
+        val nyquist : XYSeries = SimpleXYSeries(main_activity.listReal,main_activity.listImag,"Impedance Data")
         val format = LineAndPointFormatter(Color.BLUE, Color.BLACK, null, null)
         findViewById<XYPlot>(R.id.xy_Nyquist)
             .addSeries(nyquist,format)

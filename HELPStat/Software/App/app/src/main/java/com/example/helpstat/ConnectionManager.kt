@@ -101,6 +101,15 @@ object ConnectionManager {
     val characteristic_folderName = BluetoothGattCharacteristic(UUID.fromString("02193c1e-4afe-4211-b64f-e878e9d6c0a4"),
         BluetoothGattCharacteristic.PROPERTY_WRITE,
         BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+    val characteristic_real = BluetoothGattCharacteristic(UUID.fromString("67c0488c-e330-438c-a88d-59abfcfbb527"),
+        BluetoothGattCharacteristic.PROPERTY_NOTIFY + BluetoothGattCharacteristic.PROPERTY_READ,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+    val characteristic_imag = BluetoothGattCharacteristic(UUID.fromString("e080f979-bb39-4151-8082-755e3ae6f055"),
+        BluetoothGattCharacteristic.PROPERTY_NOTIFY + BluetoothGattCharacteristic.PROPERTY_READ,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+    val characteristic_currFreq = BluetoothGattCharacteristic(UUID.fromString("893028d3-54b4-4d59-a03b-ece286572e4a"),
+        BluetoothGattCharacteristic.PROPERTY_NOTIFY + BluetoothGattCharacteristic.PROPERTY_READ,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
 
     // Values
     var rct_data = byteArrayOf()
@@ -538,6 +547,17 @@ object ConnectionManager {
         ) {
             with(characteristic) {
                 Log.i("Notify:","Characteristic $uuid changed | value: ${value.toHexString()}")
+                if(characteristic.uuid.toString() == "67c0488c-e330-438c-a88d-59abfcfbb527") {
+                    main_activity.listReal.add(value.decodeToString().toFloat())
+                    Log.i("REAL:", main_activity.listReal.toString())
+                } else if (characteristic.uuid.toString() == "e080f979-bb39-4151-8082-755e3ae6f055") {
+                    main_activity.listImag.add(value.decodeToString().toFloat())
+                    Log.i("IMAG:", main_activity.listImag.toString())
+                } else if (characteristic.uuid.toString() == "893028d3-54b4-4d59-a03b-ece286572e4a") {
+                    main_activity.listFreq.add(value.decodeToString().toFloat())
+                    Log.i("FREQ:", main_activity.listFreq.toString())
+                }
+
                 listenersAsSet.forEach {
                     it.get()?.onCharacteristicChanged?.invoke(gatt.device, this, value)
                 }
@@ -550,6 +570,18 @@ object ConnectionManager {
             value: ByteArray
         ) {
             Log.i("Notify:","Characteristic ${characteristic.uuid} changed | value: ${value.toHexString()}")
+            if(characteristic.uuid.toString() == "67c0488c-e330-438c-a88d-59abfcfbb527") {
+                main_activity.listReal.add(value.decodeToString().toFloat())
+                Log.i("REAL:", main_activity.listReal.toString())
+            } else if (characteristic.uuid.toString() == "e080f979-bb39-4151-8082-755e3ae6f055") {
+                main_activity.listImag.add(value.decodeToString().toFloat())
+                Log.i("IMAG:", main_activity.listImag.toString())
+            } else if (characteristic.uuid.toString() == "893028d3-54b4-4d59-a03b-ece286572e4a") {
+                main_activity.listFreq.add(value.decodeToString().toFloat())
+                Log.i("FREQ:", main_activity.listFreq.toString())
+            }
+
+
             listenersAsSet.forEach {
                 it.get()?.onCharacteristicChanged?.invoke(gatt.device, characteristic, value)
             }
