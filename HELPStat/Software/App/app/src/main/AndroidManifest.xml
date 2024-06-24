@@ -29,6 +29,10 @@
         android:theme="@style/Theme.HELPStat"
         tools:targetApi="31">
         <activity android:name=".SettingsActivity" />
+        <activity android:name=".BleOperationsActivity"
+            android:screenOrientation="portrait"
+            android:exported="false"
+            />
         <activity
             android:name=".MainActivity"
             android:exported="true"

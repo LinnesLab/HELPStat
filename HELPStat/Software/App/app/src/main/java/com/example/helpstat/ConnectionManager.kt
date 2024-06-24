@@ -39,6 +39,7 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 
+
 /** Maximum BLE MTU size as defined in gatt_api.h. */
 private const val GATT_MAX_MTU_SIZE = 517
 private const val GATT_MIN_MTU_SIZE = 23
@@ -53,6 +54,56 @@ object ConnectionManager {
     private val deviceGattMap = ConcurrentHashMap<BluetoothDevice, BluetoothGatt>()
     private val operationQueue = ConcurrentLinkedQueue<BleOperationType>()
     private var pendingOperation: BleOperationType? = null
+
+    // Characteristics
+    val characteristic_start = BluetoothGattCharacteristic(UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8"),
+        BluetoothGattCharacteristic.PROPERTY_WRITE,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+    val characteristic_rct   = BluetoothGattCharacteristic(UUID.fromString("a5d42ee9-0551-4a23-a1b7-74eea28aa083"),
+        BluetoothGattCharacteristic.PROPERTY_NOTIFY + BluetoothGattCharacteristic.PROPERTY_READ + BluetoothGattCharacteristic.PROPERTY_WRITE,
+        BluetoothGattCharacteristic.PERMISSION_READ + BluetoothGattCharacteristic.PERMISSION_WRITE)
+    val characteristic_rs    = BluetoothGattCharacteristic(UUID.fromString("192fa626-1e5a-4018-8176-5debff81a6c6"),
+        BluetoothGattCharacteristic.PROPERTY_NOTIFY + BluetoothGattCharacteristic.PROPERTY_READ + BluetoothGattCharacteristic.PROPERTY_WRITE,
+        BluetoothGattCharacteristic.PERMISSION_READ + BluetoothGattCharacteristic.PERMISSION_WRITE)
+    val characteristic_startFreq = BluetoothGattCharacteristic(UUID.fromString("5b0210d0-cd21-4011-9882-db983ba7e1fc"),
+        BluetoothGattCharacteristic.PROPERTY_WRITE,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+    val characteristic_endFreq = BluetoothGattCharacteristic(UUID.fromString("3507abdc-2353-486b-a3d5-dd831ee4bb18"),
+        BluetoothGattCharacteristic.PROPERTY_WRITE,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+    val characteristic_numPoints = BluetoothGattCharacteristic(UUID.fromString("359a6d93-9007-41f6-bbbe-f92bc17db383"),
+        BluetoothGattCharacteristic.PROPERTY_WRITE,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+    val characteristic_numCycles = BluetoothGattCharacteristic(UUID.fromString("8117179a-b8ee-433c-96da-65816c5c92dd"),
+        BluetoothGattCharacteristic.PROPERTY_WRITE,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+    val characteristic_rcalval = BluetoothGattCharacteristic(UUID.fromString("4f7d237e-a358-439e-8771-4ab7f81473fa"),
+        BluetoothGattCharacteristic.PROPERTY_WRITE,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+    val characteristic_dacGain = BluetoothGattCharacteristic(UUID.fromString("4f7d237e-a358-439e-8771-4ab7f81473fa"),
+        BluetoothGattCharacteristic.PROPERTY_WRITE,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+    val characteristic_extGain = BluetoothGattCharacteristic(UUID.fromString("e17e690a-16e8-4c70-b958-73e41d4afff0"),
+        BluetoothGattCharacteristic.PROPERTY_WRITE,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+    val characteristic_zeroVolt = BluetoothGattCharacteristic(UUID.fromString("60d57f7b-6e41-41e5-bd44-0e23638e90d2"),
+        BluetoothGattCharacteristic.PROPERTY_WRITE,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+    val characteristic_biasVolt = BluetoothGattCharacteristic(UUID.fromString("62df1950-23f9-4acd-8473-61a421d4cf07"),
+        BluetoothGattCharacteristic.PROPERTY_WRITE,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+    val characteristic_delaySecs = BluetoothGattCharacteristic(UUID.fromString("57a7466e-c0e1-4f6e-aea4-99ef4f360d24"),
+        BluetoothGattCharacteristic.PROPERTY_WRITE,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+    val characteristic_fileName = BluetoothGattCharacteristic(UUID.fromString("d07519f0-1c45-461a-9b8e-fcaad4e53f0c"),
+        BluetoothGattCharacteristic.PROPERTY_WRITE,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+    val characteristic_folderName = BluetoothGattCharacteristic(UUID.fromString("02193c1e-4afe-4211-b64f-e878e9d6c0a4"),
+        BluetoothGattCharacteristic.PROPERTY_WRITE,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+
+    // Values
+    var rct_data = byteArrayOf()
 
     fun servicesOnDevice(device: BluetoothDevice): List<BluetoothGattService>? =
         deviceGattMap[device]?.services
@@ -163,9 +214,9 @@ object ConnectionManager {
         ) {
             enqueueOperation(EnableNotifications(device, characteristic.uuid))
         } else if (!device.isConnected()) {
-            Timber.e("Not connected to ${device.address}, cannot enable notifications")
+            Log.e("Notifications:","Not connected to ${device.address}, cannot enable notifications")
         } else if (!characteristic.isIndicatable() && !characteristic.isNotifiable()) {
-            Timber.e("Characteristic ${characteristic.uuid} doesn't support notifications/indications")
+            Log.e("Notifications:","Characteristic ${characteristic.uuid} doesn't support notifications/indications")
         }
     }
 
@@ -486,7 +537,7 @@ object ConnectionManager {
             characteristic: BluetoothGattCharacteristic
         ) {
             with(characteristic) {
-                Timber.i("Characteristic $uuid changed | value: ${value.toHexString()}")
+                Log.i("Notify:","Characteristic $uuid changed | value: ${value.toHexString()}")
                 listenersAsSet.forEach {
                     it.get()?.onCharacteristicChanged?.invoke(gatt.device, this, value)
                 }
@@ -498,7 +549,7 @@ object ConnectionManager {
             characteristic: BluetoothGattCharacteristic,
             value: ByteArray
         ) {
-            Timber.i("Characteristic ${characteristic.uuid} changed | value: ${value.toHexString()}")
+            Log.i("Notify:","Characteristic ${characteristic.uuid} changed | value: ${value.toHexString()}")
             listenersAsSet.forEach {
                 it.get()?.onCharacteristicChanged?.invoke(gatt.device, characteristic, value)
             }

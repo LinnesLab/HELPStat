@@ -58,10 +58,10 @@
         android:textColor="@color/black"
         android:textSize="18sp"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/test_displayRCT" />
+        app:layout_constraintTop_toBottomOf="@+id/text_displayRCT" />
 
     <TextView
-        android:id="@+id/test_displayRCT"
+        android:id="@+id/text_displayRCT"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:hint="Rct"

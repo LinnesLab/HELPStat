@@ -23,6 +23,7 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
+import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
@@ -46,11 +47,18 @@ private const val PERMISSION_REQUEST_CODE = 1
     https://punchthrough.com/android-ble-guide/. When I wrote this code,
     only God and I knew what this code does. Now, God only knows.
  */
+object main_activity {
+    lateinit var connected_device : BluetoothDevice
+}
+
 class MainActivity : ComponentActivity() {
     // listReal, listImag, listFreq data to plot
     private val listReal = mutableListOf<Float>()
     private val listImag = mutableListOf<Float>()
     private val listFreq = mutableListOf<Float>()
+
+    // Characteristics
+
 
     // Scanning and Displaying BLE Devices
     private lateinit var binding: ActivityMainBinding
@@ -109,7 +117,6 @@ class MainActivity : ComponentActivity() {
             runOnUiThread { findViewById<Button>(R.id.button_connect).text = if (value) "Stop BLE Scan" else "Scan BLE Devices" }
         }
 
-    private lateinit var connected_device : BluetoothDevice
     private val scanResults = mutableListOf<ScanResult>()
     private val scanResultAdapter: ScanResultAdapter by lazy {
         ScanResultAdapter(scanResults) { result ->
@@ -120,7 +127,7 @@ class MainActivity : ComponentActivity() {
             with(result.device) {
                 Log.d("LOG:","Connecting to $address")
                 ConnectionManager.connect(this, this@MainActivity)
-                connected_device = this
+                main_activity.connected_device = this
             }
         }
     }
@@ -156,11 +163,12 @@ class MainActivity : ComponentActivity() {
 
         findViewById<Button>(R.id.button_start)
             .setOnClickListener {
+                // Set to notify of changes
+                ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_rct)
+
                 // Sends a "START" signal
-                ConnectionManager.writeCharacteristic(connected_device,
-                    BluetoothGattCharacteristic(UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8"),
-                    BluetoothGattCharacteristic.PROPERTY_WRITE,
-                    BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT),
+                ConnectionManager.writeCharacteristic(main_activity.connected_device,
+                    ConnectionManager.characteristic_start,
                     byteArrayOf(1))
 
                 // Reset data when taking a new sample
@@ -172,10 +180,8 @@ class MainActivity : ComponentActivity() {
                 redrawNyquist()
 
                 // Reset
-                ConnectionManager.writeCharacteristic(connected_device,
-                    BluetoothGattCharacteristic(UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8"),
-                        BluetoothGattCharacteristic.PROPERTY_WRITE,
-                        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT),
+                ConnectionManager.writeCharacteristic(main_activity.connected_device,
+                    ConnectionManager.characteristic_start,
                     byteArrayOf(0))
 
                 // Log.d("TAG",listReal.joinToString())
