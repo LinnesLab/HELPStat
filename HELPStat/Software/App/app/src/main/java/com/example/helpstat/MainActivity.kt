@@ -21,6 +21,7 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
 import android.util.Log
 import android.widget.Button
 import android.widget.TextView
@@ -38,8 +39,10 @@ import com.androidplot.xy.SimpleXYSeries
 import com.androidplot.xy.XYPlot
 import com.androidplot.xy.XYSeries
 import com.example.helpstat.databinding.ActivityMainBinding
+import org.w3c.dom.Text
 import timber.log.Timber
 import java.util.UUID
+import kotlin.properties.Delegates
 
 private const val PERMISSION_REQUEST_CODE = 1
 /*
@@ -47,15 +50,23 @@ private const val PERMISSION_REQUEST_CODE = 1
     https://punchthrough.com/android-ble-guide/. When I wrote this code,
     only God and I knew what this code does. Now, God only knows.
  */
+
 object main_activity {
     lateinit var connected_device : BluetoothDevice
+}
+
+data object data_main {
     var listReal = mutableListOf<Float>()
     var listImag = mutableListOf<Float>()
     var listFreq = mutableListOf<Float>()
+    var calculated_rct : String? = null
+    var calculated_rs : String? = null
 }
 
 class MainActivity : ComponentActivity() {
     // Scanning and Displaying BLE Devices
+    private lateinit var myListener: ConnectionEventListener
+
     private lateinit var binding: ActivityMainBinding
     val filter = ScanFilter.Builder().setDeviceName("HELPStat").build()
 
@@ -135,9 +146,15 @@ class MainActivity : ComponentActivity() {
         }
 
         setContentView(R.layout.activity_main)
+        redrawNyquist()
+
+//        val resistorAdapter = ResistorsAdapter(arrayOf(data_main.calculated_rct,data_main.calculated_rs))
+//        val recyclerView2 : RecyclerView = findViewById(R.id.resistors_recycler)
+//        recyclerView2.layoutManager = LinearLayoutManager(this)
+//        recyclerView2.adapter = resistorAdapter
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        val buttonConnect = findViewById<Button>(R.id.button_connect)
         binding.buttonConnect.setOnClickListener {
                 if (isScanning) {
                     stopBleScan()
@@ -147,6 +164,7 @@ class MainActivity : ComponentActivity() {
                 // Log.d("TAG",listReal.joinToString())
             }
         setupRecyclerView()
+        handler.postDelayed(updateRunnable, 0)
 
         findViewById<Button>(R.id.button_openSettings)
             .setOnClickListener {
@@ -170,13 +188,15 @@ class MainActivity : ComponentActivity() {
                     ConnectionManager.characteristic_start,
                     byteArrayOf(1))
 
-                // Draw an empty Nyquist (visualizes that new sample has started)
+                // Erase Start
                 redrawNyquist()
+                data_main.calculated_rct = ""
+                data_main.calculated_rs  = ""
 
                 // Reset data when taking a new sample
-                main_activity.listFreq.clear()
-                main_activity.listReal.clear()
-                main_activity.listImag.clear()
+                data_main.listFreq.clear()
+                data_main.listReal.clear()
+                data_main.listImag.clear()
 
                 // Reset
                 ConnectionManager.writeCharacteristic(main_activity.connected_device,
@@ -340,13 +360,24 @@ class MainActivity : ComponentActivity() {
 
     // Function that draws Nyquist
     fun redrawNyquist() {
-        findViewById<XYPlot>(R.id.xy_Nyquist)
-            .clear()
-        val nyquist : XYSeries = SimpleXYSeries(main_activity.listReal,main_activity.listImag,"Impedance Data")
+        findViewById<XYPlot>(R.id.xy_Nyquist).clear()
+        val nyquist : XYSeries = SimpleXYSeries(data_main.listReal,data_main.listImag,"Impedance Data")
         val format = LineAndPointFormatter(Color.BLUE, Color.BLACK, null, null)
-        findViewById<XYPlot>(R.id.xy_Nyquist)
-            .addSeries(nyquist,format)
-        findViewById<XYPlot>(R.id.xy_Nyquist)
-            .redraw()
+        findViewById<XYPlot>(R.id.xy_Nyquist).addSeries(nyquist,format)
+        findViewById<XYPlot>(R.id.xy_Nyquist).redraw()
     }
+
+    //https://blog.stackademic.com/10-ways-updating-the-screen-periodically-in-android-apps-88672027022c
+    // Update the screen ~1/s ; couldn't find another way to update, so gave up
+    val handler = Handler()
+    val updateRunnable = object : Runnable {
+        override fun run() {
+            // Update UI elements here (e.g., textView.text = "Updated!")
+            findViewById<TextView>(R.id.text_displayRCT).text = data_main.calculated_rct
+            findViewById<TextView>(R.id.text_displayRS).text = data_main.calculated_rs
+            redrawNyquist()
+            handler.postDelayed(this, 1000) // Update every 1 second
+        }
+    }
+//    handler.postDelayed(updateRunnable, 0)
 }

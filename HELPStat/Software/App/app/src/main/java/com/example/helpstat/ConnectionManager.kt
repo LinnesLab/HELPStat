@@ -33,20 +33,19 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Parcelable
 import android.util.Log
+import androidx.activity.ComponentActivity
 import timber.log.Timber
 import java.lang.ref.WeakReference
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
 
-
 /** Maximum BLE MTU size as defined in gatt_api.h. */
 private const val GATT_MAX_MTU_SIZE = 517
 private const val GATT_MIN_MTU_SIZE = 23
 
 @SuppressLint("MissingPermission") // Assume permissions are handled by UI
-object ConnectionManager {
-
+object ConnectionManager : ComponentActivity() {
     private var listeners: MutableSet<WeakReference<ConnectionEventListener>> = mutableSetOf()
     private val listenersAsSet
         get() = listeners.toSet()
@@ -128,7 +127,7 @@ object ConnectionManager {
         if (listeners.map { it.get() }.contains(listener)) { return }
         listeners.add(WeakReference(listener))
         listeners = listeners.filter { it.get() != null }.toMutableSet()
-        Timber.d("Added listener $listener, ${listeners.size} listeners total")
+        Log.d("LISTENER:","Added listener $listener, ${listeners.size} listeners total")
     }
 
     fun unregisterListener(listener: ConnectionEventListener) {
@@ -539,29 +538,45 @@ object ConnectionManager {
             }
         }
 
+
+
         @Deprecated("Deprecated for Android 13+")
         @Suppress("DEPRECATION")
         override fun onCharacteristicChanged(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic
         ) {
+            //redrawNyquist()
             with(characteristic) {
                 Log.i("Notify:","Characteristic $uuid changed | value: ${value.toHexString()}")
                 if(characteristic.uuid.toString() == "67c0488c-e330-438c-a88d-59abfcfbb527") {
-                    main_activity.listReal.add(value.decodeToString().toFloat())
-                    Log.i("REAL:", main_activity.listReal.toString())
+                    data_main.listReal.add(value.decodeToString().toFloat())
+                    Log.i("REAL:", data_main.listReal.toString())
                 } else if (characteristic.uuid.toString() == "e080f979-bb39-4151-8082-755e3ae6f055") {
-                    main_activity.listImag.add(value.decodeToString().toFloat())
-                    Log.i("IMAG:", main_activity.listImag.toString())
+                    data_main.listImag.add(value.decodeToString().toFloat())
+                    Log.i("IMAG:", data_main.listImag.toString())
                 } else if (characteristic.uuid.toString() == "893028d3-54b4-4d59-a03b-ece286572e4a") {
-                    main_activity.listFreq.add(value.decodeToString().toFloat())
-                    Log.i("FREQ:", main_activity.listFreq.toString())
+                    data_main.listFreq.add(value.decodeToString().toFloat())
+                    Log.i("FREQ:", data_main.listFreq.toString())
+                } else if (characteristic.uuid.toString() == "a5d42ee9-0551-4a23-a1b7-74eea28aa083") {
+                    data_main.calculated_rct = value.decodeToString()
+                    //MainActivity().findViewById<TextView>(R.id.text_displayRCT).text = data_main.calculated_rct
+                    Log.i("RCT:", data_main.calculated_rct.toString())
+                } else if (characteristic.uuid.toString() == "192fa626-1e5a-4018-8176-5debff81a6c6") {
+                    data_main.calculated_rs = value.decodeToString()
+                    //MainActivity().findViewById<TextView>(R.id.text_displayRS).text = data_main.calculated_rs
+                    Log.i("RS:", data_main.calculated_rs.toString())
                 }
 
                 listenersAsSet.forEach {
                     it.get()?.onCharacteristicChanged?.invoke(gatt.device, this, value)
                 }
             }
+//            MainActivity().runOnUiThread {
+//                Looper.prepare()
+//                Toast.makeText(MainActivity(),"Hello",Toast.LENGTH_SHORT).show()
+//                findViewById<TextView>(R.id.text_displayRCT).text = data_main.calculated_rct
+//            }
         }
 
         override fun onCharacteristicChanged(
@@ -571,20 +586,27 @@ object ConnectionManager {
         ) {
             Log.i("Notify:","Characteristic ${characteristic.uuid} changed | value: ${value.toHexString()}")
             if(characteristic.uuid.toString() == "67c0488c-e330-438c-a88d-59abfcfbb527") {
-                main_activity.listReal.add(value.decodeToString().toFloat())
-                Log.i("REAL:", main_activity.listReal.toString())
+                data_main.listReal.add(value.decodeToString().toFloat())
+                Log.i("REAL:", data_main.listReal.toString())
             } else if (characteristic.uuid.toString() == "e080f979-bb39-4151-8082-755e3ae6f055") {
-                main_activity.listImag.add(value.decodeToString().toFloat())
-                Log.i("IMAG:", main_activity.listImag.toString())
+                data_main.listImag.add(value.decodeToString().toFloat())
+                Log.i("IMAG:", data_main.listImag.toString())
             } else if (characteristic.uuid.toString() == "893028d3-54b4-4d59-a03b-ece286572e4a") {
-                main_activity.listFreq.add(value.decodeToString().toFloat())
-                Log.i("FREQ:", main_activity.listFreq.toString())
+                data_main.listFreq.add(value.decodeToString().toFloat())
+                Log.i("FREQ:", data_main.listFreq.toString())
+            } else if (characteristic.uuid.toString() == "a5d42ee9-0551-4a23-a1b7-74eea28aa083") {
+                data_main.calculated_rct = value.decodeToString()
+                Log.i("RCT:", data_main.calculated_rct.toString())
+            } else if (characteristic.uuid.toString() == "192fa626-1e5a-4018-8176-5debff81a6c6") {
+                data_main.calculated_rs = value.decodeToString()
+                Log.i("RS:", data_main.calculated_rs.toString())
             }
-
 
             listenersAsSet.forEach {
                 it.get()?.onCharacteristicChanged?.invoke(gatt.device, characteristic, value)
             }
+
+
         }
 
         @Deprecated("Deprecated for Android 13+")
