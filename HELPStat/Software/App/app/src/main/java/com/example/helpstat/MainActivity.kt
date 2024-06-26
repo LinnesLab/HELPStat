@@ -24,6 +24,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.util.Log
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
@@ -61,6 +62,22 @@ data object data_main {
     var listFreq = mutableListOf<Float>()
     var calculated_rct : String? = null
     var calculated_rs : String? = null
+
+    // Settings
+    var estimated_rct : String? = "5000"
+    var estimated_rs  : String? = "100"
+    var rcal : String? = "1000"
+    var startFreq : String? = "100000"
+    var endFreq : String? = "1"
+    var numPoints : String? = "4"
+    var numCycles : String? = "0"
+    var folderName : String? = ""
+    var fileName : String? = ""
+    var extGain : String? = "1"
+    var dacGain : String? = "1"
+    var zeroVolt : String? = "0"
+    var biasVolt : String? = "0"
+    var delaySecs : String? = "0"
 }
 
 class MainActivity : ComponentActivity() {
@@ -107,18 +124,17 @@ class MainActivity : ComponentActivity() {
                     Log.i(
                         "ScanCallback",
                         "Found BLE device! Name: ${name ?: "Unnamed"}, address: $address")
+                    Handler().postDelayed({
+                        stopBleScan()
+                    }, 500)
+                    Handler().postDelayed({
+                        Log.d("LOG:","Connecting to $address")
+                        ConnectionManager.connect(this, this@MainActivity)
+                        main_activity.connected_device = this
+                    }, 500)
                 }
                 scanResults.add(result)
                 scanResultAdapter.notifyItemInserted(scanResults.size - 1)
-
-                // Once HELPStat is found, stop scan and connect
-                stopBleScan()
-                with(result.device) {
-                    Log.d("LOG:","Connecting to $address")
-                    ConnectionManager.connect(this, this@MainActivity)
-                    main_activity.connected_device = this
-                }
-
             }
         }
         override fun onScanFailed(errorCode: Int) {
@@ -146,6 +162,12 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    override fun onStop() {
+        super.onStop()
+        ConnectionManager.teardownConnection(main_activity.connected_device)
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -192,6 +214,17 @@ class MainActivity : ComponentActivity() {
                 ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_real)
                 ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_imag)
                 ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_currFreq)
+
+                // Write Rct/Rs Estimates
+                ConnectionManager.writeCharacteristic(
+                    main_activity.connected_device,
+                    ConnectionManager.characteristic_rct,
+                    data_main.estimated_rct.toString().toByteArray())
+
+                ConnectionManager.writeCharacteristic(
+                    main_activity.connected_device,
+                    ConnectionManager.characteristic_rs,
+                    data_main.estimated_rs.toString().toByteArray())
 
                 // Sends a "START" signal
                 ConnectionManager.writeCharacteristic(main_activity.connected_device,
