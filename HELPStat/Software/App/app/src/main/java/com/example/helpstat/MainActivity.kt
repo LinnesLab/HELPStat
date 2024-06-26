@@ -110,6 +110,15 @@ class MainActivity : ComponentActivity() {
                 }
                 scanResults.add(result)
                 scanResultAdapter.notifyItemInserted(scanResults.size - 1)
+
+                // Once HELPStat is found, stop scan and connect
+                stopBleScan()
+                with(result.device) {
+                    Log.d("LOG:","Connecting to $address")
+                    ConnectionManager.connect(this, this@MainActivity)
+                    main_activity.connected_device = this
+                }
+
             }
         }
         override fun onScanFailed(errorCode: Int) {
@@ -120,7 +129,7 @@ class MainActivity : ComponentActivity() {
     private var isScanning = false
         set(value) {
             field = value
-            runOnUiThread { findViewById<Button>(R.id.button_connect).text = if (value) "Stop BLE Scan" else "Scan BLE Devices" }
+            runOnUiThread { findViewById<Button>(R.id.button_connect).text = if (value) "Stop BLE Scan" else "Connect" }
         }
 
     private val scanResults = mutableListOf<ScanResult>()
@@ -155,6 +164,7 @@ class MainActivity : ComponentActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+//        startBleScan()
         binding.buttonConnect.setOnClickListener {
                 if (isScanning) {
                     stopBleScan()
@@ -362,7 +372,8 @@ class MainActivity : ComponentActivity() {
     fun redrawNyquist() {
         findViewById<XYPlot>(R.id.xy_Nyquist).clear()
         val nyquist : XYSeries = SimpleXYSeries(data_main.listReal,data_main.listImag,"Impedance Data")
-        val format = LineAndPointFormatter(Color.BLUE, Color.BLACK, null, null)
+        val format = LineAndPointFormatter(null, Color.BLACK, null, null)
+        format.vertexPaint.strokeWidth=24f
         findViewById<XYPlot>(R.id.xy_Nyquist).addSeries(nyquist,format)
         findViewById<XYPlot>(R.id.xy_Nyquist).redraw()
     }
@@ -379,5 +390,4 @@ class MainActivity : ComponentActivity() {
             handler.postDelayed(this, 1000) // Update every 1 second
         }
     }
-//    handler.postDelayed(updateRunnable, 0)
 }

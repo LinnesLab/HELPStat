@@ -5,7 +5,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="10dp">
+    android:padding="10dp"
+    android:background="@color/boilermaker_gold">
 
     <Button
         android:id="@+id/button_start"
@@ -27,18 +28,21 @@
         android:id="@+id/button_connect"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Start BLE Scan"
+        android:text="Connect"
         app:layout_constraintBottom_toTopOf="@+id/button_openSettings"
         app:layout_constraintEnd_toEndOf="parent" />
 
     <com.androidplot.xy.XYPlot
+        app:backgroundColor="@color/boilermaker_gold"
+        app:graphBackgroundColor="@color/boilermaker_gold"
+        app:gridBackgroundColor="@color/dust_gold"
         android:id="@+id/xy_Nyquist"
-        style="@style/APDefacto.Light"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:layout_constraintBottom_toTopOf="@+id/scan_results_recycler_view"
         app:layout_constraintTop_toTopOf="parent"
         app:title="Nyquist Plot"
+        style="@style/APDefacto.Light"
         tools:layout_editor_absoluteX="10dp" />
 
     <TextView
