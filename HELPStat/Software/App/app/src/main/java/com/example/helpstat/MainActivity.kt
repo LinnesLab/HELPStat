@@ -19,6 +19,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.graphics.Paint
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -30,19 +31,27 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.annotation.UiThread
+import androidx.compose.ui.Alignment
 import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.androidplot.BuildConfig
+import com.androidplot.ui.Anchor
+import com.androidplot.ui.HorizontalPosition
+import com.androidplot.ui.HorizontalPositioning
+import com.androidplot.ui.VerticalPositioning
+import com.androidplot.xy.CatmullRomInterpolator
 import com.androidplot.xy.LineAndPointFormatter
 import com.androidplot.xy.SimpleXYSeries
+import com.androidplot.xy.XYGraphWidget
 import com.androidplot.xy.XYPlot
 import com.androidplot.xy.XYSeries
 import com.example.helpstat.databinding.ActivityMainBinding
 import org.w3c.dom.Text
 import timber.log.Timber
 import java.util.UUID
+import kotlin.math.sqrt
 import kotlin.properties.Delegates
 
 private const val PERMISSION_REQUEST_CODE = 1
@@ -227,8 +236,8 @@ class MainActivity : ComponentActivity() {
 
                 // Erase Start
                 redrawNyquist()
-                data_main.calculated_rct = ""
-                data_main.calculated_rs  = ""
+                data_main.calculated_rct = null
+                data_main.calculated_rs  = null
 
                 // Reset data when taking a new sample
                 data_main.listFreq.clear()
@@ -397,11 +406,35 @@ class MainActivity : ComponentActivity() {
 
     // Function that draws Nyquist
     fun redrawNyquist() {
+        // Draw Raw Data
         findViewById<XYPlot>(R.id.xy_Nyquist).clear()
         val nyquist : XYSeries = SimpleXYSeries(data_main.listReal,data_main.listImag,"Impedance Data")
         val format = LineAndPointFormatter(null, Color.BLACK, null, null)
         format.vertexPaint.strokeWidth=24f
         findViewById<XYPlot>(R.id.xy_Nyquist).addSeries(nyquist,format)
+
+        // Draw Fitted Circle once Rct and Rs have been received
+        if(data_main.calculated_rct != null && data_main.calculated_rs != null) {
+            var rct = data_main.calculated_rct.toString().toFloat()
+            var rs  = data_main.calculated_rs.toString().toFloat()
+            var interpImag : List<Float> = data_main.listReal.map {
+                sqrt(rct*rct/4 - (it - rs - rct/2)*(it - rs - rct/2))
+            }
+
+            // Draw
+            val interpNyquist : XYSeries = SimpleXYSeries(data_main.listReal,interpImag,"Fitted Data")
+            val interpFormat = LineAndPointFormatter(Color.BLACK,null,null,null)
+
+            findViewById<XYPlot>(R.id.xy_Nyquist).addSeries(interpNyquist,interpFormat)
+
+//            Log.i("INTERP: ",interpImag.toString())
+        }
+
+        findViewById<XYPlot>(R.id.xy_Nyquist).graph.getLineLabelStyle(XYGraphWidget.Edge.LEFT).paint.textSize=24f
+        findViewById<XYPlot>(R.id.xy_Nyquist).graph.getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).paint.textSize=24f
+//        findViewById<XYPlot>(R.id.xy_Nyquist).domainTitle.text="Zreal"
+//        findViewById<XYPlot>(R.id.xy_Nyquist).rangeTitle.text="Zimag"
+        findViewById<XYPlot>(R.id.xy_Nyquist).legend.isVisible=false
         findViewById<XYPlot>(R.id.xy_Nyquist).redraw()
     }
 
