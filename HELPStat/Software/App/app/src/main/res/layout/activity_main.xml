@@ -33,17 +33,17 @@
         app:layout_constraintEnd_toEndOf="parent" />
 
     <com.androidplot.xy.XYPlot
+        android:id="@+id/xy_Nyquist"
+        style="@style/APDefacto.Light"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         app:backgroundColor="@color/boilermaker_gold"
         app:graphBackgroundColor="@color/boilermaker_gold"
         app:gridBackgroundColor="@color/dust_gold"
-        android:id="@+id/xy_Nyquist"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
         app:layout_constraintBottom_toTopOf="@+id/scan_results_recycler_view"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:title="Nyquist Plot"
-        style="@style/APDefacto.Light"
-        tools:layout_editor_absoluteX="10dp" />
+        app:title="Nyquist Plot" />
 
     <TextView
         android:id="@+id/textView17"

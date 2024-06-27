@@ -51,6 +51,7 @@ import com.example.helpstat.databinding.ActivityMainBinding
 import org.w3c.dom.Text
 import timber.log.Timber
 import java.util.UUID
+import kotlin.math.atan
 import kotlin.math.sqrt
 import kotlin.properties.Delegates
 
@@ -69,6 +70,7 @@ data object data_main {
     var listReal = mutableListOf<Float>()
     var listImag = mutableListOf<Float>()
     var listFreq = mutableListOf<Float>()
+    var interpImag = mutableListOf<Float>()
     var calculated_rct : String? = null
     var calculated_rs : String? = null
 
@@ -243,6 +245,7 @@ class MainActivity : ComponentActivity() {
                 data_main.listFreq.clear()
                 data_main.listReal.clear()
                 data_main.listImag.clear()
+                data_main.interpImag.clear()
 
                 // Reset
                 ConnectionManager.writeCharacteristic(main_activity.connected_device,
@@ -417,23 +420,24 @@ class MainActivity : ComponentActivity() {
         if(data_main.calculated_rct != null && data_main.calculated_rs != null) {
             var rct = data_main.calculated_rct.toString().toFloat()
             var rs  = data_main.calculated_rs.toString().toFloat()
-            var interpImag : List<Float> = data_main.listReal.map {
-                sqrt(rct*rct/4 - (it - rs - rct/2)*(it - rs - rct/2))
-            }
+            data_main.interpImag = data_main.listReal.map {
+                sqrt(rct*rct/4 - (it - rs - rct/2)*(it - rs -rct/2))
+            }.toMutableList()
+
+            data_main.interpImag = data_main.interpImag.map {
+                if(it.isNaN()) { 0f } else { it }
+            }.toMutableList()
 
             // Draw
-            val interpNyquist : XYSeries = SimpleXYSeries(data_main.listReal,interpImag,"Fitted Data")
+            val interpNyquist : XYSeries = SimpleXYSeries(data_main.listReal,data_main.interpImag,"Fitted Data")
             val interpFormat = LineAndPointFormatter(Color.BLACK,null,null,null)
-
             findViewById<XYPlot>(R.id.xy_Nyquist).addSeries(interpNyquist,interpFormat)
 
-//            Log.i("INTERP: ",interpImag.toString())
+            Log.i("INTERP: ",data_main.interpImag.toString())
         }
 
         findViewById<XYPlot>(R.id.xy_Nyquist).graph.getLineLabelStyle(XYGraphWidget.Edge.LEFT).paint.textSize=24f
         findViewById<XYPlot>(R.id.xy_Nyquist).graph.getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).paint.textSize=24f
-//        findViewById<XYPlot>(R.id.xy_Nyquist).domainTitle.text="Zreal"
-//        findViewById<XYPlot>(R.id.xy_Nyquist).rangeTitle.text="Zimag"
         findViewById<XYPlot>(R.id.xy_Nyquist).legend.isVisible=false
         findViewById<XYPlot>(R.id.xy_Nyquist).redraw()
     }
