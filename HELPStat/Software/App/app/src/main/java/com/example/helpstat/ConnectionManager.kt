@@ -407,13 +407,13 @@ object ConnectionManager : ComponentActivity() {
 
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 if (newState == BluetoothProfile.STATE_CONNECTED) {
-                    Timber.w("onConnectionStateChange: connected to $deviceAddress")
+                    Log.d("Connection:","onConnectionStateChange: connected to $deviceAddress")
                     deviceGattMap[gatt.device] = gatt
                     Handler(Looper.getMainLooper()).post {
                         gatt.discoverServices()
                     }
                 } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
-                    Timber.e("onConnectionStateChange: disconnected from $deviceAddress")
+                    Log.d("Connection:","onConnectionStateChange: disconnected from $deviceAddress")
                     teardownConnection(gatt.device)
                 }
             } else {
