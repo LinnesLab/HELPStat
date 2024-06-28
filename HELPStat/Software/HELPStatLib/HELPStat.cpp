@@ -2965,7 +2965,7 @@ void HELPStat::BLE_setup() {
   pServer->setCallbacks(new MyServerCallbacks());
 
   // Create the BLE Service
-  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID),60,0);
+  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID),65,0);
 
   // Create a BLE Characteristic
   pCharacteristicStart = pService->createCharacteristic(
@@ -3061,6 +3061,11 @@ void HELPStat::BLE_setup() {
                       BLECharacteristic::PROPERTY_READ |
                       BLECharacteristic::PROPERTY_NOTIFY
                     );  
+  pCharacteristicPhase = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_PHASE,
+                      BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_NOTIFY
+                    ); 
 
   // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
   // Create a BLE Descriptor
@@ -3083,6 +3088,7 @@ void HELPStat::BLE_setup() {
   pCharacteristicCurrentFreq->addDescriptor(new BLE2902());
   pCharacteristicReal->addDescriptor(new BLE2902());
   pCharacteristicImag->addDescriptor(new BLE2902());
+  pCharacteristicPhase->addDescriptor(new BLE2902());
 
   // Start the service
   pService->start();
@@ -3200,6 +3206,11 @@ void HELPStat::BLE_transmitResults() {
       dtostrf(eis.imag,1,4,buffer);
       pCharacteristicImag->setValue(buffer);
       pCharacteristicImag->notify();
+
+      // Transmit Phase
+      dtostrf(eis.phaseRad,3,4,buffer);
+      pCharacteristicPhase->setValue(buffer);
+      pCharacteristicPhase->notify();
 
       // Necessary delay so all BLE calls finish. Not sure why it works, but it does; DON'T TOUCH!
       delay(50);

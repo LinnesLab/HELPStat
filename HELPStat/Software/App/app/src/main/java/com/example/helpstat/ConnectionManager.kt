@@ -39,6 +39,7 @@ import java.lang.ref.WeakReference
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ConcurrentLinkedQueue
+import kotlin.math.PI
 
 /** Maximum BLE MTU size as defined in gatt_api.h. */
 private const val GATT_MAX_MTU_SIZE = 517
@@ -109,9 +110,9 @@ object ConnectionManager : ComponentActivity() {
     val characteristic_currFreq = BluetoothGattCharacteristic(UUID.fromString("893028d3-54b4-4d59-a03b-ece286572e4a"),
         BluetoothGattCharacteristic.PROPERTY_NOTIFY + BluetoothGattCharacteristic.PROPERTY_READ,
         BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
-
-    // Values
-    var rct_data = byteArrayOf()
+    val characteristic_phase = BluetoothGattCharacteristic(UUID.fromString("6a5a437f-4e3c-4a57-bf99-c4859f6ac411"),
+        BluetoothGattCharacteristic.PROPERTY_NOTIFY + BluetoothGattCharacteristic.PROPERTY_READ,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
 
     fun servicesOnDevice(device: BluetoothDevice): List<BluetoothGattService>? =
         deviceGattMap[device]?.services
@@ -566,6 +567,13 @@ object ConnectionManager : ComponentActivity() {
                     data_main.calculated_rs = value.decodeToString()
                     //MainActivity().findViewById<TextView>(R.id.text_displayRS).text = data_main.calculated_rs
                     Log.i("RS:", data_main.calculated_rs.toString())
+                } else if (characteristic.uuid.toString() == "6a5a437f-4e3c-4a57-bf99-c4859f6ac411") {
+                    if(value.decodeToString().toFloat() > 0) {
+                        data_main.listPhase.add(value.decodeToString().toFloat() - 2*PI.toFloat()) // Occasional "outlier" where phase is 2pi high
+                    } else {
+                        data_main.listPhase.add(value.decodeToString().toFloat())
+                    }
+                    Log.i("PHASE:",data_main.listPhase.toString())
                 }
 
                 listenersAsSet.forEach {

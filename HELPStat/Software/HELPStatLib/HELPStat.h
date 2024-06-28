@@ -207,6 +207,7 @@ extern "C" {
 #define CHARACTERISTIC_UUID_CURRENTFREQ "893028d3-54b4-4d59-a03b-ece286572e4a"
 #define CHARACTERISTIC_UUID_REAL        "67c0488c-e330-438c-a88d-59abfcfbb527"
 #define CHARACTERISTIC_UUID_IMAG        "e080f979-bb39-4151-8082-755e3ae6f055"
+#define CHARACTERISTIC_UUID_PHASE       "6a5a437f-4e3c-4a57-bf99-c4859f6ac411"
 
 typedef struct _impStruct {
     float freq;
@@ -312,6 +313,7 @@ class HELPStat {
         BLECharacteristic* pCharacteristicCurrentFreq = NULL;
         BLECharacteristic* pCharacteristicReal        = NULL;
         BLECharacteristic* pCharacteristicImag        = NULL;
+        BLECharacteristic* pCharacteristicPhase       = NULL;
 
         // bool deviceConnected = false;
         bool start_value     = false;

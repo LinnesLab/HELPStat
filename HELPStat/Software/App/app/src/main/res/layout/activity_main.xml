@@ -5,8 +5,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="10dp"
-    android:background="@color/boilermaker_gold">
+    android:background="@color/boilermaker_gold"
+    android:padding="10dp">
 
     <Button
         android:id="@+id/button_start"
@@ -34,16 +34,33 @@
 
     <com.androidplot.xy.XYPlot
         android:id="@+id/xy_Nyquist"
-        style="@style/APDefacto.Light"
+        style="@style/LargeText"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:backgroundColor="@color/boilermaker_gold"
+        app:graphBackgroundColor="@color/boilermaker_gold"
+        app:gridBackgroundColor="@color/dust_gold"
+        app:layout_constraintBottom_toTopOf="@+id/xy_Bode"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:paddingBottom="10dp"
+        app:title="Nyquist Plot" />
+
+    <com.androidplot.xy.XYPlot
+        android:id="@+id/xy_Bode"
+        style="@style/LargeText"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         app:backgroundColor="@color/boilermaker_gold"
         app:graphBackgroundColor="@color/boilermaker_gold"
         app:gridBackgroundColor="@color/dust_gold"
         app:layout_constraintBottom_toTopOf="@+id/scan_results_recycler_view"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:title="Nyquist Plot" />
+        app:layout_constraintTop_toBottomOf="@+id/xy_Nyquist"
+        app:paddingBottom="10dp"
+        app:title="Bode Plot" />
 
     <TextView
         android:id="@+id/textView17"

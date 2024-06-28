@@ -32,6 +32,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.annotation.UiThread
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Size
 import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -40,6 +41,9 @@ import com.androidplot.BuildConfig
 import com.androidplot.ui.Anchor
 import com.androidplot.ui.HorizontalPosition
 import com.androidplot.ui.HorizontalPositioning
+import com.androidplot.ui.PositionMetrics
+import com.androidplot.ui.SizeMetric
+import com.androidplot.ui.SizeMode
 import com.androidplot.ui.VerticalPositioning
 import com.androidplot.xy.CatmullRomInterpolator
 import com.androidplot.xy.LineAndPointFormatter
@@ -52,6 +56,7 @@ import org.w3c.dom.Text
 import timber.log.Timber
 import java.util.UUID
 import kotlin.math.atan
+import kotlin.math.log10
 import kotlin.math.sqrt
 import kotlin.properties.Delegates
 
@@ -70,7 +75,8 @@ data object data_main {
     var listReal = mutableListOf<Float>()
     var listImag = mutableListOf<Float>()
     var listFreq = mutableListOf<Float>()
-    var interpImag = mutableListOf<Float>()
+//    var interpImag = mutableListOf<Float>()
+    var listPhase = mutableListOf<Float>()
     var calculated_rct : String? = null
     var calculated_rs : String? = null
 
@@ -183,6 +189,7 @@ class MainActivity : ComponentActivity() {
 
         setContentView(R.layout.activity_main)
         redrawNyquist()
+        redrawBode()
 
 //        val resistorAdapter = ResistorsAdapter(arrayOf(data_main.calculated_rct,data_main.calculated_rs))
 //        val recyclerView2 : RecyclerView = findViewById(R.id.resistors_recycler)
@@ -219,6 +226,7 @@ class MainActivity : ComponentActivity() {
                 ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_real)
                 ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_imag)
                 ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_currFreq)
+                ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_phase)
 
                 // Write Rct/Rs Estimates
                 ConnectionManager.writeCharacteristic(
@@ -236,8 +244,6 @@ class MainActivity : ComponentActivity() {
                     ConnectionManager.characteristic_start,
                     byteArrayOf(1))
 
-                // Erase Start
-                redrawNyquist()
                 data_main.calculated_rct = null
                 data_main.calculated_rs  = null
 
@@ -245,7 +251,11 @@ class MainActivity : ComponentActivity() {
                 data_main.listFreq.clear()
                 data_main.listReal.clear()
                 data_main.listImag.clear()
-                data_main.interpImag.clear()
+                data_main.listPhase.clear()
+
+                // Draw Empty Plots
+                redrawNyquist()
+                redrawBode()
 
                 // Reset
                 ConnectionManager.writeCharacteristic(main_activity.connected_device,
@@ -413,33 +423,53 @@ class MainActivity : ComponentActivity() {
         findViewById<XYPlot>(R.id.xy_Nyquist).clear()
         val nyquist : XYSeries = SimpleXYSeries(data_main.listReal,data_main.listImag,"Impedance Data")
         val format = LineAndPointFormatter(null, Color.BLACK, null, null)
-        format.vertexPaint.strokeWidth=24f
         findViewById<XYPlot>(R.id.xy_Nyquist).addSeries(nyquist,format)
 
         // Draw Fitted Circle once Rct and Rs have been received
         if(data_main.calculated_rct != null && data_main.calculated_rs != null) {
             var rct = data_main.calculated_rct.toString().toFloat()
             var rs  = data_main.calculated_rs.toString().toFloat()
-            data_main.interpImag = data_main.listReal.map {
+
+            // List of Integers from Rs to Rs+Rct
+            var calculated_Zreal = ((rs+1).toInt()..((rs+rct).toInt()) step (rct/10).toInt()).toList()
+            var calculated_Zimag =  calculated_Zreal.map {
                 sqrt(rct*rct/4 - (it - rs - rct/2)*(it - rs -rct/2))
-            }.toMutableList()
+            }
 
-            data_main.interpImag = data_main.interpImag.map {
-                if(it.isNaN()) { 0f } else { it }
-            }.toMutableList()
+            val interpolated_format = LineAndPointFormatter(Color.BLACK,null,null,null)
+            val interpolated_Nyquist : XYSeries = SimpleXYSeries(calculated_Zreal, calculated_Zimag,"Fitted Data")
+            findViewById<XYPlot>(R.id.xy_Nyquist).addSeries(interpolated_Nyquist,interpolated_format)
 
-            // Draw
-            val interpNyquist : XYSeries = SimpleXYSeries(data_main.listReal,data_main.interpImag,"Fitted Data")
-            val interpFormat = LineAndPointFormatter(Color.BLACK,null,null,null)
-            findViewById<XYPlot>(R.id.xy_Nyquist).addSeries(interpNyquist,interpFormat)
-
-            Log.i("INTERP: ",data_main.interpImag.toString())
+            Log.i("INTERP: ",calculated_Zimag.toString())
         }
 
+        // Graphical Settings
+        format.vertexPaint.strokeWidth=24f
+        findViewById<XYPlot>(R.id.xy_Nyquist).domainTitle.text="Zreal (\u03a9)"
+        findViewById<XYPlot>(R.id.xy_Nyquist).rangeTitle.text="Zimag (\u03a9)"
+        findViewById<XYPlot>(R.id.xy_Nyquist).domainTitle.positionMetrics.xPositionMetric=findViewById<XYPlot>(R.id.xy_Nyquist).title.positionMetrics.xPositionMetric
+        findViewById<XYPlot>(R.id.xy_Nyquist).domainTitle.anchor=Anchor.BOTTOM_MIDDLE
         findViewById<XYPlot>(R.id.xy_Nyquist).graph.getLineLabelStyle(XYGraphWidget.Edge.LEFT).paint.textSize=24f
         findViewById<XYPlot>(R.id.xy_Nyquist).graph.getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).paint.textSize=24f
         findViewById<XYPlot>(R.id.xy_Nyquist).legend.isVisible=false
         findViewById<XYPlot>(R.id.xy_Nyquist).redraw()
+    }
+
+    fun redrawBode() {
+        // Plot log(f) vs Phase
+        findViewById<XYPlot>(R.id.xy_Bode).clear()
+        val bode : XYSeries = SimpleXYSeries(data_main.listFreq.map{ log10(it) },data_main.listPhase,"Impedance Data") // Plots log(f) instead of f
+        val format = LineAndPointFormatter(null, Color.BLACK, null, null)
+        findViewById<XYPlot>(R.id.xy_Bode).addSeries(bode,format)
+
+        // Some Graphical Settings for Prettiness
+        format.vertexPaint.strokeWidth=24f
+        findViewById<XYPlot>(R.id.xy_Bode).domainTitle.text="log(frequency)"
+        findViewById<XYPlot>(R.id.xy_Bode).domainTitle.positionMetrics.xPositionMetric=findViewById<XYPlot>(R.id.xy_Bode).title.positionMetrics.xPositionMetric
+        findViewById<XYPlot>(R.id.xy_Bode).domainTitle.anchor=Anchor.BOTTOM_MIDDLE
+        findViewById<XYPlot>(R.id.xy_Bode).rangeTitle.text="Phase (rads)"
+        findViewById<XYPlot>(R.id.xy_Bode).layoutManager.remove(findViewById<XYPlot>(R.id.xy_Bode).legend)
+        findViewById<XYPlot>(R.id.xy_Bode).redraw()
     }
 
     //https://blog.stackademic.com/10-ways-updating-the-screen-periodically-in-android-apps-88672027022c
@@ -450,7 +480,12 @@ class MainActivity : ComponentActivity() {
             // Update UI elements here (e.g., textView.text = "Updated!")
             findViewById<TextView>(R.id.text_displayRCT).text = data_main.calculated_rct
             findViewById<TextView>(R.id.text_displayRS).text = data_main.calculated_rs
-            redrawNyquist()
+            if(data_main.listReal.size == data_main.listImag.size) {
+                redrawNyquist()
+            }
+            if(data_main.listFreq.size == data_main.listPhase.size) {
+                redrawBode()
+            }
             handler.postDelayed(this, 1000) // Update every 1 second
         }
     }

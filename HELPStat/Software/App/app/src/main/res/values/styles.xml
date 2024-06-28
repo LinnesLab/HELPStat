@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="LargeText" parent="@style/APDefacto.Light">
+        <item name="domainTitleTextSize">16sp</item>
+        <item name="rangeTitleTextSize">16sp</item>
+    </style>
+</resources>
