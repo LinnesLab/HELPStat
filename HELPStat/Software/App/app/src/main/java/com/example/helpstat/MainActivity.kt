@@ -32,12 +32,14 @@ import androidx.recyclerview.widget.SimpleItemAnimator
 import com.androidplot.BuildConfig
 import com.androidplot.ui.Anchor
 import com.androidplot.xy.LineAndPointFormatter
+import com.androidplot.xy.PanZoom
 import com.androidplot.xy.SimpleXYSeries
 import com.androidplot.xy.XYGraphWidget
 import com.androidplot.xy.XYPlot
 import com.androidplot.xy.XYSeries
 import com.example.helpstat.databinding.ActivityMainBinding
 import timber.log.Timber
+import kotlin.math.abs
 import kotlin.math.log10
 import kotlin.math.sqrt
 
@@ -404,7 +406,7 @@ class MainActivity : ComponentActivity() {
             var rs  = data_main.calculated_rs.toString().toFloat()
 
             // List of Integers from Rs to Rs+Rct
-            var calculated_Zreal = ((rs+1).toInt()..((rs+rct).toInt()) step (rct/10).toInt()).toList()
+            var calculated_Zreal = ((rs+1).toInt()..((rs+rct).toInt()) step abs(rct/10).toInt()).toList()
             var calculated_Zimag =  calculated_Zreal.map {
                 sqrt(rct*rct/4 - (it - rs - rct/2)*(it - rs -rct/2))
             }
