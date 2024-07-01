@@ -533,10 +533,10 @@ object ConnectionManager : ComponentActivity() {
                     //MainActivity().findViewById<TextView>(R.id.text_displayRS).text = data_main.calculated_rs
                     Log.i("RS:", data_main.calculated_rs.toString())
                 } else if (characteristic.uuid.toString() == "6a5a437f-4e3c-4a57-bf99-c4859f6ac411") {
-                    if(value.decodeToString().toFloat() > 90) {
-                        data_main.listPhase.add(value.decodeToString().toFloat() - 180f) // Occasional "outlier" where phase is 2pi high
+                    if(value.decodeToString().toFloat() > 180) {
+                        data_main.listPhase.add(value.decodeToString().toFloat() - 360f) // Occasional "outlier" where phase is 2pi high
                     } else if(value.decodeToString().toFloat() < -180) {
-                        data_main.listPhase.add(value.decodeToString().toFloat() + 180f)
+                        data_main.listPhase.add(value.decodeToString().toFloat() + 360f)
                     } else {
                         data_main.listPhase.add(value.decodeToString().toFloat())
                     }
