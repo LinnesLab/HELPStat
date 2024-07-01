@@ -3208,7 +3208,7 @@ void HELPStat::BLE_transmitResults() {
       pCharacteristicImag->notify();
 
       // Transmit Phase
-      dtostrf(eis.phaseRad,3,4,buffer);
+      dtostrf(eis.phaseDeg,3,4,buffer);
       pCharacteristicPhase->setValue(buffer);
       pCharacteristicPhase->notify();
 

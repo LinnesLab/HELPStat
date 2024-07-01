@@ -23,10 +23,11 @@ import android.bluetooth.BluetoothGattDescriptor
 
 /** A listener containing callback methods to be registered with [ConnectionManager].*/
 class ConnectionEventListener {
+    // Connections
     var onConnectionSetupComplete: ((gatt: BluetoothGatt) -> Unit)? = null
-
     var onDisconnect: ((device: BluetoothDevice) -> Unit)? = null
 
+    // Descriptors
     var onDescriptorRead: (
         (
         device: BluetoothDevice,
@@ -42,6 +43,7 @@ class ConnectionEventListener {
     ) -> Unit
     )? = null
 
+    // Characteristics
     var onCharacteristicChanged: (
         (
         device: BluetoothDevice,
@@ -65,6 +67,7 @@ class ConnectionEventListener {
     ) -> Unit
     )? = null
 
+    // Notifications
     var onNotificationsEnabled: (
         (
         device: BluetoothDevice,

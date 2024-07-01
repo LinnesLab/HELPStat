@@ -47,14 +47,6 @@ private const val GATT_MIN_MTU_SIZE = 23
 
 @SuppressLint("MissingPermission") // Assume permissions are handled by UI
 object ConnectionManager : ComponentActivity() {
-    private var listeners: MutableSet<WeakReference<ConnectionEventListener>> = mutableSetOf()
-    private val listenersAsSet
-        get() = listeners.toSet()
-
-    private val deviceGattMap = ConcurrentHashMap<BluetoothDevice, BluetoothGatt>()
-    private val operationQueue = ConcurrentLinkedQueue<BleOperationType>()
-    private var pendingOperation: BleOperationType? = null
-
     // Characteristics
     val characteristic_start = BluetoothGattCharacteristic(UUID.fromString("beb5483e-36e1-4688-b7f5-ea07361b26a8"),
         BluetoothGattCharacteristic.PROPERTY_WRITE,
@@ -114,37 +106,17 @@ object ConnectionManager : ComponentActivity() {
         BluetoothGattCharacteristic.PROPERTY_NOTIFY + BluetoothGattCharacteristic.PROPERTY_READ,
         BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
 
-    fun servicesOnDevice(device: BluetoothDevice): List<BluetoothGattService>? =
-        deviceGattMap[device]?.services
+    // Listeners
+    private var listeners: MutableSet<WeakReference<ConnectionEventListener>> = mutableSetOf()
+    private val listenersAsSet
+        get() = listeners.toSet()
 
-    fun listenToBondStateChanges(context: Context) {
-        context.applicationContext.registerReceiver(
-            broadcastReceiver,
-            IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
-        )
-    }
+    // Gatt Map
+    private val deviceGattMap = ConcurrentHashMap<BluetoothDevice, BluetoothGatt>()
+    private val operationQueue = ConcurrentLinkedQueue<BleOperationType>()
+    private var pendingOperation: BleOperationType? = null
 
-    fun registerListener(listener: ConnectionEventListener) {
-        if (listeners.map { it.get() }.contains(listener)) { return }
-        listeners.add(WeakReference(listener))
-        listeners = listeners.filter { it.get() != null }.toMutableSet()
-        Log.d("LISTENER:","Added listener $listener, ${listeners.size} listeners total")
-    }
-
-    fun unregisterListener(listener: ConnectionEventListener) {
-        // Removing elements while in a loop results in a java.util.ConcurrentModificationException
-        var toRemove: WeakReference<ConnectionEventListener>? = null
-        listenersAsSet.forEach {
-            if (it.get() == listener) {
-                toRemove = it
-            }
-        }
-        toRemove?.let {
-            listeners.remove(it)
-            Timber.d("Removed listener ${it.get()}, ${listeners.size} listeners total")
-        }
-    }
-
+    // Connection Helper Functions
     fun connect(device: BluetoothDevice, context: Context) {
         if (device.isConnected()) {
             Timber.e("Already connected to ${device.address}!")
@@ -152,7 +124,6 @@ object ConnectionManager : ComponentActivity() {
             enqueueOperation(Connect(device, context.applicationContext))
         }
     }
-
     fun teardownConnection(device: BluetoothDevice) {
         if (device.isConnected()) {
             enqueueOperation(Disconnect(device))
@@ -161,6 +132,7 @@ object ConnectionManager : ComponentActivity() {
         }
     }
 
+    // Read/Write from Characteristic
     fun readCharacteristic(device: BluetoothDevice, characteristic: BluetoothGattCharacteristic) {
         if (device.isConnected() && characteristic.isReadable()) {
             enqueueOperation(CharacteristicRead(device, characteristic.uuid))
@@ -170,7 +142,6 @@ object ConnectionManager : ComponentActivity() {
             Timber.e("Not connected to ${device.address}, cannot perform characteristic read")
         }
     }
-
     fun writeCharacteristic(
         device: BluetoothDevice,
         characteristic: BluetoothGattCharacteristic,
@@ -192,7 +163,6 @@ object ConnectionManager : ComponentActivity() {
             Log.e("Write","Not connected to ${device.address}, cannot perform characteristic write")
         }
     }
-
     fun readDescriptor(device: BluetoothDevice, descriptor: BluetoothGattDescriptor) {
         if (device.isConnected() && descriptor.isReadable()) {
             enqueueOperation(DescriptorRead(device, descriptor.uuid))
@@ -202,7 +172,6 @@ object ConnectionManager : ComponentActivity() {
             Timber.e("Not connected to ${device.address}, cannot perform descriptor read")
         }
     }
-
     fun writeDescriptor(
         device: BluetoothDevice,
         descriptor: BluetoothGattDescriptor,
@@ -216,7 +185,6 @@ object ConnectionManager : ComponentActivity() {
             Timber.e("Descriptor ${descriptor.uuid} cannot be written to")
         }
     }
-
     fun enableNotifications(device: BluetoothDevice, characteristic: BluetoothGattCharacteristic) {
         if (device.isConnected() &&
             (characteristic.isIndicatable() || characteristic.isNotifiable())
@@ -228,7 +196,6 @@ object ConnectionManager : ComponentActivity() {
             Log.e("Notifications:","Characteristic ${characteristic.uuid} doesn't support notifications/indications")
         }
     }
-
     fun disableNotifications(device: BluetoothDevice, characteristic: BluetoothGattCharacteristic) {
         if (device.isConnected() &&
             (characteristic.isIndicatable() || characteristic.isNotifiable())
@@ -240,7 +207,6 @@ object ConnectionManager : ComponentActivity() {
             Timber.e("Characteristic ${characteristic.uuid} doesn't support notifications/indications")
         }
     }
-
     fun requestMtu(device: BluetoothDevice, mtu: Int) {
         if (device.isConnected()) {
             enqueueOperation(MtuRequest(device, mtu.coerceIn(GATT_MIN_MTU_SIZE, GATT_MAX_MTU_SIZE)))
@@ -250,7 +216,6 @@ object ConnectionManager : ComponentActivity() {
     }
 
     // - Beginning of PRIVATE functions
-
     @Synchronized
     private fun enqueueOperation(operation: BleOperationType) {
         operationQueue.add(operation)
@@ -401,7 +366,6 @@ object ConnectionManager : ComponentActivity() {
             else -> error("Unsupported operation: $operation")
         }
     }
-
     private val callback = object : BluetoothGattCallback() {
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
             val deviceAddress = gatt.device.address
@@ -565,11 +529,14 @@ object ConnectionManager : ComponentActivity() {
                     Log.i("RCT:", data_main.calculated_rct.toString())
                 } else if (characteristic.uuid.toString() == "192fa626-1e5a-4018-8176-5debff81a6c6") {
                     data_main.calculated_rs = value.decodeToString()
+                    data_main.finished = true
                     //MainActivity().findViewById<TextView>(R.id.text_displayRS).text = data_main.calculated_rs
                     Log.i("RS:", data_main.calculated_rs.toString())
                 } else if (characteristic.uuid.toString() == "6a5a437f-4e3c-4a57-bf99-c4859f6ac411") {
-                    if(value.decodeToString().toFloat() > 0) {
-                        data_main.listPhase.add(value.decodeToString().toFloat() - 2*PI.toFloat()) // Occasional "outlier" where phase is 2pi high
+                    if(value.decodeToString().toFloat() > 180) {
+                        data_main.listPhase.add(value.decodeToString().toFloat() - 180f) // Occasional "outlier" where phase is 2pi high
+                    } else if(value.decodeToString().toFloat() < -180) {
+                        data_main.listPhase.add(value.decodeToString().toFloat() + 180f)
                     } else {
                         data_main.listPhase.add(value.decodeToString().toFloat())
                     }
@@ -743,7 +710,6 @@ object ConnectionManager : ComponentActivity() {
             }
         }
     }
-
     private val broadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             with(intent) {
@@ -765,7 +731,6 @@ object ConnectionManager : ComponentActivity() {
             else -> "ERROR: $this"
         }
     }
-
     private fun BluetoothDevice.isConnected() = deviceGattMap.containsKey(this)
 
     /**

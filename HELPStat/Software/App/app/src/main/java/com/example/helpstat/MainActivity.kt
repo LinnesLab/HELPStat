@@ -6,10 +6,6 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothGatt
-import android.bluetooth.BluetoothGattCallback
-import android.bluetooth.BluetoothGattCharacteristic
-import android.bluetooth.BluetoothGattService
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
@@ -19,66 +15,49 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
-import android.graphics.Paint
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.util.Log
 import android.widget.Button
-import android.widget.EditText
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.annotation.UiThread
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.geometry.Size
 import androidx.core.app.ActivityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.androidplot.BuildConfig
 import com.androidplot.ui.Anchor
-import com.androidplot.ui.HorizontalPosition
-import com.androidplot.ui.HorizontalPositioning
-import com.androidplot.ui.PositionMetrics
-import com.androidplot.ui.SizeMetric
-import com.androidplot.ui.SizeMode
-import com.androidplot.ui.VerticalPositioning
-import com.androidplot.xy.CatmullRomInterpolator
 import com.androidplot.xy.LineAndPointFormatter
 import com.androidplot.xy.SimpleXYSeries
 import com.androidplot.xy.XYGraphWidget
 import com.androidplot.xy.XYPlot
 import com.androidplot.xy.XYSeries
 import com.example.helpstat.databinding.ActivityMainBinding
-import org.w3c.dom.Text
 import timber.log.Timber
-import java.util.UUID
-import kotlin.math.atan
 import kotlin.math.log10
 import kotlin.math.sqrt
-import kotlin.properties.Delegates
 
 private const val PERMISSION_REQUEST_CODE = 1
-/*
-    NOTE!!! Anything relating to BLE communication can be found at
-    https://punchthrough.com/android-ble-guide/. When I wrote this code,
-    only God and I knew what this code does. Now, God only knows.
- */
 
 object main_activity {
     lateinit var connected_device : BluetoothDevice
 }
 
 data object data_main {
+    // Receivable data
     var listReal = mutableListOf<Float>()
     var listImag = mutableListOf<Float>()
     var listFreq = mutableListOf<Float>()
-//    var interpImag = mutableListOf<Float>()
     var listPhase = mutableListOf<Float>()
     var calculated_rct : String? = null
     var calculated_rs : String? = null
+
+    // Notification
+    var finished : Boolean = false
 
     // Settings
     var estimated_rct : String? = "5000"
@@ -98,38 +77,25 @@ data object data_main {
 }
 
 class MainActivity : ComponentActivity() {
+    /*
+        BLE Variables and Functions.
+        Used from a tutorial by Punchthrough found at:
+        https://punchthrough.com/android-ble-guide/.
+     */
     // Scanning and Displaying BLE Devices
     private lateinit var myListener: ConnectionEventListener
-
     private lateinit var binding: ActivityMainBinding
-    val filter = ScanFilter.Builder().setDeviceName("HELPStat").build()
-
-    // Some Bluetooth Values. See https://punchthrough.com/android-ble-guide/
     private val bluetoothAdapter: BluetoothAdapter by lazy {
         val bluetoothManager = getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         bluetoothManager.adapter
     }
-
-    // Scanning for BLE
-    private val bleScanner by lazy {
-        bluetoothAdapter.bluetoothLeScanner
-    }
-
+    val filter = ScanFilter.Builder().setDeviceName("HELPStat").build()
     private val scanSettings = ScanSettings.Builder()
         .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
         .build()
-
-    private val bluetoothEnablingResult = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            // Bluetooth is enabled, good to go
-        } else {
-            // User dismissed or denied Bluetooth prompt
-            promptEnableBluetooth()
-        }
+    private val bleScanner by lazy {
+        bluetoothAdapter.bluetoothLeScanner
     }
-
     private val scanCallback = object : ScanCallback() {
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             val indexQuery = scanResults.indexOfFirst { it.device.address == result.device.address }
@@ -158,13 +124,47 @@ class MainActivity : ComponentActivity() {
             Log.e("ScanCallback","onScanFailed: code $errorCode")
         }
     }
-
     private var isScanning = false
         set(value) {
             field = value
             runOnUiThread { findViewById<Button>(R.id.button_connect).text = if (value) "Stop BLE Scan" else "Connect" }
         }
 
+    // Scanning Functions
+    private fun startBleScan() {
+        if (!hasRequiredBluetoothPermissions()) {
+            requestRelevantRuntimePermissions()
+        } else {
+            scanResults.clear()
+            scanResultAdapter.notifyDataSetChanged()
+            bleScanner.startScan(listOf(filter), scanSettings, scanCallback)
+            isScanning = true
+        }
+    }
+    private fun stopBleScan() {
+        bleScanner.stopScan(scanCallback)
+        isScanning = false
+    }
+
+    // Display Scan Results
+    @UiThread
+    private fun setupRecyclerView() {
+        binding.scanResultsRecyclerView.apply {
+            adapter = scanResultAdapter
+
+            layoutManager = LinearLayoutManager(
+                this@MainActivity,
+                RecyclerView.VERTICAL,
+                false
+            )
+            isNestedScrollingEnabled = false
+            itemAnimator.let {
+                if (it is SimpleItemAnimator) {
+                    it.supportsChangeAnimations = false
+                }
+            }
+        }
+    }
     private val scanResults = mutableListOf<ScanResult>()
     private val scanResultAdapter: ScanResultAdapter by lazy {
         ScanResultAdapter(scanResults) { result ->
@@ -180,6 +180,123 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // BLE Permissions / Enabling
+    private val bluetoothEnablingResult = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            // Bluetooth is enabled, good to go
+        } else {
+            // User dismissed or denied Bluetooth prompt
+            promptEnableBluetooth()
+        }
+    }
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != PERMISSION_REQUEST_CODE) return
+        val containsPermanentDenial = permissions.zip(grantResults.toTypedArray()).any {
+            it.second == PackageManager.PERMISSION_DENIED &&
+                    !ActivityCompat.shouldShowRequestPermissionRationale(this, it.first)
+        }
+        val containsDenial = grantResults.any { it == PackageManager.PERMISSION_DENIED }
+        val allGranted = grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+        when {
+            containsPermanentDenial -> {
+                // TODO: Handle permanent denial (e.g., show AlertDialog with justification)
+                // Note: The user will need to navigate to App Settings and manually grant
+                // permissions that were permanently denied
+            }
+            containsDenial -> {
+                requestRelevantRuntimePermissions()
+            }
+            allGranted && hasRequiredBluetoothPermissions() -> {
+                startBleScan()
+            }
+            else -> {
+                // Unexpected scenario encountered when handling permissions
+                recreate()
+            }
+        }
+    }
+    // Checks if App has all permissions enabled
+    private fun Activity.requestRelevantRuntimePermissions() {
+        if (hasRequiredBluetoothPermissions()) { return }
+        when {
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.S -> {
+                requestLocationPermission()
+            }
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
+                requestBluetoothPermissions()
+            }
+        }
+    }
+    private fun requestLocationPermission() = runOnUiThread {
+        AlertDialog.Builder(this)
+            .setTitle("Location permission required")
+            .setMessage(
+                "Starting from Android M (6.0), the system requires apps to be granted " +
+                        "location access in order to scan for BLE devices."
+            )
+            .setCancelable(false)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
+                    PERMISSION_REQUEST_CODE
+                )
+            }
+            .show()
+    }
+    // No idea what this does. See https://punchthrough.com/android-ble-guide/
+    @RequiresApi(Build.VERSION_CODES.S)
+    private fun requestBluetoothPermissions() = runOnUiThread {
+        AlertDialog.Builder(this)
+            .setTitle("Bluetooth permission required")
+            .setMessage(
+                "Starting from Android 12, the system requires apps to be granted " +
+                        "Bluetooth access in order to scan for and connect to BLE devices."
+            )
+            .setCancelable(false)
+            .setPositiveButton(android.R.string.ok) { _, _ ->
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(
+                        Manifest.permission.BLUETOOTH_SCAN,
+                        Manifest.permission.BLUETOOTH_CONNECT
+                    ),
+                    PERMISSION_REQUEST_CODE
+                )
+            }
+            .show()
+    }
+
+    /**
+     * Prompts the user to enable Bluetooth via a system dialog.
+     *
+     * For Android 12+, [Manifest.permission.BLUETOOTH_CONNECT] is required to use
+     * the [BluetoothAdapter.ACTION_REQUEST_ENABLE] intent.
+     */
+    private fun promptEnableBluetooth() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            !hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
+        ) {
+            // Insufficient permission to prompt for Bluetooth enabling
+            return
+        }
+        if (!bluetoothAdapter.isEnabled) {
+            Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE).apply {
+                bluetoothEnablingResult.launch(this)
+            }
+        }
+    }
+
+    @SuppressLint("MissingPermission") // Check performed inside extension fun
+
+    // Main Functionality
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -266,39 +383,6 @@ class MainActivity : ComponentActivity() {
             }
     }
 
-    // Bluetooth Function. Requests that User has necessary bluetooth functions
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode != PERMISSION_REQUEST_CODE) return
-        val containsPermanentDenial = permissions.zip(grantResults.toTypedArray()).any {
-            it.second == PackageManager.PERMISSION_DENIED &&
-                    !ActivityCompat.shouldShowRequestPermissionRationale(this, it.first)
-        }
-        val containsDenial = grantResults.any { it == PackageManager.PERMISSION_DENIED }
-        val allGranted = grantResults.all { it == PackageManager.PERMISSION_GRANTED }
-        when {
-            containsPermanentDenial -> {
-                // TODO: Handle permanent denial (e.g., show AlertDialog with justification)
-                // Note: The user will need to navigate to App Settings and manually grant
-                // permissions that were permanently denied
-            }
-            containsDenial -> {
-                requestRelevantRuntimePermissions()
-            }
-            allGranted && hasRequiredBluetoothPermissions() -> {
-                startBleScan()
-            }
-            else -> {
-                // Unexpected scenario encountered when handling permissions
-                recreate()
-            }
-        }
-    }
-
     override fun onResume() {
         super.onResume()
         if (!bluetoothAdapter.isEnabled) {
@@ -306,118 +390,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // Display Devices
-    @UiThread
-    private fun setupRecyclerView() {
-        binding.scanResultsRecyclerView.apply {
-            adapter = scanResultAdapter
-
-            layoutManager = LinearLayoutManager(
-                this@MainActivity,
-                RecyclerView.VERTICAL,
-                false
-            )
-            isNestedScrollingEnabled = false
-            itemAnimator.let {
-                if (it is SimpleItemAnimator) {
-                    it.supportsChangeAnimations = false
-                }
-            }
-        }
-    }
-
-    // Scans for BLE devices (i.e. HELPStat)
-    private fun startBleScan() {
-        if (!hasRequiredBluetoothPermissions()) {
-            requestRelevantRuntimePermissions()
-        } else {
-            scanResults.clear()
-            scanResultAdapter.notifyDataSetChanged()
-            bleScanner.startScan(listOf(filter), scanSettings, scanCallback)
-            isScanning = true
-        }
-    }
-
-    private fun stopBleScan() {
-        bleScanner.stopScan(scanCallback)
-        isScanning = false
-    }
-
-    // Checks if App has all permissions enabled
-    private fun Activity.requestRelevantRuntimePermissions() {
-        if (hasRequiredBluetoothPermissions()) { return }
-        when {
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.S -> {
-                requestLocationPermission()
-            }
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-                requestBluetoothPermissions()
-            }
-        }
-    }
-    private fun requestLocationPermission() = runOnUiThread {
-        AlertDialog.Builder(this)
-            .setTitle("Location permission required")
-            .setMessage(
-                "Starting from Android M (6.0), the system requires apps to be granted " +
-                        "location access in order to scan for BLE devices."
-            )
-            .setCancelable(false)
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
-                    PERMISSION_REQUEST_CODE
-                )
-            }
-            .show()
-    }
-    // No idea what this does. See https://punchthrough.com/android-ble-guide/
-    @RequiresApi(Build.VERSION_CODES.S)
-    private fun requestBluetoothPermissions() = runOnUiThread {
-        AlertDialog.Builder(this)
-            .setTitle("Bluetooth permission required")
-            .setMessage(
-                "Starting from Android 12, the system requires apps to be granted " +
-                        "Bluetooth access in order to scan for and connect to BLE devices."
-            )
-            .setCancelable(false)
-            .setPositiveButton(android.R.string.ok) { _, _ ->
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(
-                        Manifest.permission.BLUETOOTH_SCAN,
-                        Manifest.permission.BLUETOOTH_CONNECT
-                    ),
-                    PERMISSION_REQUEST_CODE
-                )
-            }
-            .show()
-    }
-
-    /**
-     * Prompts the user to enable Bluetooth via a system dialog.
-     *
-     * For Android 12+, [Manifest.permission.BLUETOOTH_CONNECT] is required to use
-     * the [BluetoothAdapter.ACTION_REQUEST_ENABLE] intent.
-     */
-    private fun promptEnableBluetooth() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-            !hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
-        ) {
-            // Insufficient permission to prompt for Bluetooth enabling
-            return
-        }
-        if (!bluetoothAdapter.isEnabled) {
-            Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE).apply {
-                bluetoothEnablingResult.launch(this)
-            }
-        }
-    }
-
-    @SuppressLint("MissingPermission") // Check performed inside extension fun
-
-    // Function that draws Nyquist
+    // Redraw Plots
     fun redrawNyquist() {
         // Draw Raw Data
         findViewById<XYPlot>(R.id.xy_Nyquist).clear()
@@ -454,7 +427,6 @@ class MainActivity : ComponentActivity() {
         findViewById<XYPlot>(R.id.xy_Nyquist).legend.isVisible=false
         findViewById<XYPlot>(R.id.xy_Nyquist).redraw()
     }
-
     fun redrawBode() {
         // Plot log(f) vs Phase
         findViewById<XYPlot>(R.id.xy_Bode).clear()
@@ -467,8 +439,10 @@ class MainActivity : ComponentActivity() {
         findViewById<XYPlot>(R.id.xy_Bode).domainTitle.text="log(frequency)"
         findViewById<XYPlot>(R.id.xy_Bode).domainTitle.positionMetrics.xPositionMetric=findViewById<XYPlot>(R.id.xy_Bode).title.positionMetrics.xPositionMetric
         findViewById<XYPlot>(R.id.xy_Bode).domainTitle.anchor=Anchor.BOTTOM_MIDDLE
-        findViewById<XYPlot>(R.id.xy_Bode).rangeTitle.text="Phase (rads)"
+        findViewById<XYPlot>(R.id.xy_Bode).rangeTitle.text="Phase (\u00b0)"
         findViewById<XYPlot>(R.id.xy_Bode).layoutManager.remove(findViewById<XYPlot>(R.id.xy_Bode).legend)
+        findViewById<XYPlot>(R.id.xy_Bode).graph.getLineLabelStyle(XYGraphWidget.Edge.LEFT).paint.textSize=32f
+        findViewById<XYPlot>(R.id.xy_Bode).graph.getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).paint.textSize=32f
         findViewById<XYPlot>(R.id.xy_Bode).redraw()
     }
 
@@ -485,6 +459,28 @@ class MainActivity : ComponentActivity() {
             }
             if(data_main.listFreq.size == data_main.listPhase.size) {
                 redrawBode()
+            }
+
+            // Once sample is received, confirm that estimates worked for fitting algorithm
+            if(data_main.finished) {
+                data_main.finished = false
+
+                Log.i("FINISHED:", "Finished transfering data")
+                val builder: AlertDialog.Builder = AlertDialog.Builder(this@MainActivity)
+
+                if(data_main.calculated_rct.toString().toFloat() == data_main.estimated_rct.toString().toFloat()) {
+                    Log.i("RCT:","Bad estimate. ${data_main.calculated_rct} vs ${data_main.estimated_rct}")
+                    builder.setTitle("ERROR: Bad Estimate for Rct").setMessage("Try using ${data_main.listReal.last()}")
+                    val dialog_rct: AlertDialog = builder.create()
+                    dialog_rct.show()
+                }
+
+                if(data_main.calculated_rs.toString().toFloat() == data_main.estimated_rs.toString().toFloat()) {
+                    Log.i("RS:","Bad estimate. ${data_main.calculated_rs} vs ${data_main.estimated_rs}")
+                    builder.setTitle("ERROR: Bad Estimate for Rs").setMessage("Try using ${data_main.listReal.first()}")
+                    val dialog_rs: AlertDialog = builder.create()
+                    dialog_rs.show()
+                }
             }
             handler.postDelayed(this, 1000) // Update every 1 second
         }
