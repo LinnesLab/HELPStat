@@ -2965,7 +2965,7 @@ void HELPStat::BLE_setup() {
   pServer->setCallbacks(new MyServerCallbacks());
 
   // Create the BLE Service
-  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID),65,0);
+  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID),70,0);
 
   // Create a BLE Characteristic
   pCharacteristicStart = pService->createCharacteristic(
@@ -3065,6 +3065,11 @@ void HELPStat::BLE_setup() {
                       CHARACTERISTIC_UUID_PHASE,
                       BLECharacteristic::PROPERTY_READ |
                       BLECharacteristic::PROPERTY_NOTIFY
+                    );
+  pCharacteristicMagnitude = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_MAGNITUDE,
+                      BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_NOTIFY
                     ); 
 
   // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
@@ -3089,6 +3094,7 @@ void HELPStat::BLE_setup() {
   pCharacteristicReal->addDescriptor(new BLE2902());
   pCharacteristicImag->addDescriptor(new BLE2902());
   pCharacteristicPhase->addDescriptor(new BLE2902());
+  pCharacteristicMagnitude->addDescriptor(new BLE2902());
 
   // Start the service
   pService->start();
@@ -3207,36 +3213,22 @@ void HELPStat::BLE_transmitResults() {
       pCharacteristicImag->setValue(buffer);
       pCharacteristicImag->notify();
 
+      delay(50);
+
       // Transmit Phase
       dtostrf(eis.phaseDeg,3,4,buffer);
       pCharacteristicPhase->setValue(buffer);
       pCharacteristicPhase->notify();
 
+      // Transmit Phase
+      dtostrf(eis.magnitude,3,4,buffer);
+      pCharacteristicMagnitude->setValue(buffer);
+      pCharacteristicMagnitude->notify();
+
       // Necessary delay so all BLE calls finish. Not sure why it works, but it does; DON'T TOUCH!
       delay(50);
     }
   }
-
-  // // Transmit Index
-  // static char buffer[10];
-  // dtostrf(_sweepCfg.SweepIndex,1,0,buffer);
-  // pCharacteristicSweepIndex->setValue(buffer);
-  // pCharacteristicSweepIndex->notify();
-
-  // // Transmit Freq
-  // dtostrf(_currentFreq,1,2,buffer);
-  // pCharacteristicCurrentFreq->setValue(buffer);
-  // pCharacteristicCurrentFreq->notify();
-
-  // // Transmit Zreal
-  // dtostrf(eis.real,1,4,buffer);
-  // pCharacteristicReal->setValue(buffer);
-  // pCharacteristicReal->notify();
-
-  // // Transmit Zimag
-  // dtostrf(eis.imag,1,4,buffer);
-  // pCharacteristicImag->setValue(buffer);
-  // pCharacteristicImag->notify();
 }
 
 /*

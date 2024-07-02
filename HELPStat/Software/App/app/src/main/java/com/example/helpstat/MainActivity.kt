@@ -31,9 +31,11 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.SimpleItemAnimator
 import com.androidplot.BuildConfig
 import com.androidplot.ui.Anchor
+import com.androidplot.xy.BoundaryMode
 import com.androidplot.xy.LineAndPointFormatter
-import com.androidplot.xy.PanZoom
+import com.androidplot.xy.NormedXYSeries
 import com.androidplot.xy.SimpleXYSeries
+import com.androidplot.xy.StepMode
 import com.androidplot.xy.XYGraphWidget
 import com.androidplot.xy.XYPlot
 import com.androidplot.xy.XYSeries
@@ -55,6 +57,7 @@ data object data_main {
     var listImag = mutableListOf<Float>()
     var listFreq = mutableListOf<Float>()
     var listPhase = mutableListOf<Float>()
+    var listMagnitude = mutableListOf<Float>()
     var calculated_rct : String? = null
     var calculated_rs : String? = null
 
@@ -346,6 +349,7 @@ class MainActivity : ComponentActivity() {
                 ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_imag)
                 ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_currFreq)
                 ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_phase)
+                ConnectionManager.enableNotifications(main_activity.connected_device, ConnectionManager.characteristic_magnitude)
 
                 // Write Rct/Rs Estimates
                 ConnectionManager.writeCharacteristic(
@@ -371,6 +375,7 @@ class MainActivity : ComponentActivity() {
                 data_main.listReal.clear()
                 data_main.listImag.clear()
                 data_main.listPhase.clear()
+                data_main.listMagnitude.clear()
 
                 // Draw Empty Plots
                 redrawNyquist()
@@ -424,28 +429,54 @@ class MainActivity : ComponentActivity() {
         findViewById<XYPlot>(R.id.xy_Nyquist).rangeTitle.text="Zimag (\u03a9)"
         findViewById<XYPlot>(R.id.xy_Nyquist).domainTitle.positionMetrics.xPositionMetric=findViewById<XYPlot>(R.id.xy_Nyquist).title.positionMetrics.xPositionMetric
         findViewById<XYPlot>(R.id.xy_Nyquist).domainTitle.anchor=Anchor.BOTTOM_MIDDLE
-        findViewById<XYPlot>(R.id.xy_Nyquist).graph.getLineLabelStyle(XYGraphWidget.Edge.LEFT).paint.textSize=24f
-        findViewById<XYPlot>(R.id.xy_Nyquist).graph.getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).paint.textSize=24f
+        findViewById<XYPlot>(R.id.xy_Nyquist).graph.getLineLabelStyle(XYGraphWidget.Edge.LEFT).paint.textSize=22f
+        findViewById<XYPlot>(R.id.xy_Nyquist).graph.getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).paint.textSize=22f
         findViewById<XYPlot>(R.id.xy_Nyquist).legend.isVisible=false
+        findViewById<XYPlot>(R.id.xy_Nyquist).setDomainLowerBoundary(0,BoundaryMode.FIXED)
+        findViewById<XYPlot>(R.id.xy_Nyquist).setRangeLowerBoundary(0,BoundaryMode.FIXED)
         findViewById<XYPlot>(R.id.xy_Nyquist).redraw()
     }
     fun redrawBode() {
-        // Plot log(f) vs Phase
-        findViewById<XYPlot>(R.id.xy_Bode).clear()
-        val bode : XYSeries = SimpleXYSeries(data_main.listFreq.map{ log10(it) },data_main.listPhase,"Impedance Data") // Plots log(f) instead of f
-        val format = LineAndPointFormatter(null, Color.BLACK, null, null)
-        findViewById<XYPlot>(R.id.xy_Bode).addSeries(bode,format)
+        // Clear
+        findViewById<XYPlot>(R.id.xy_Bode_Magnitude).clear()
+        findViewById<XYPlot>(R.id.xy_Bode_Phase).clear()
 
-        // Some Graphical Settings for Prettiness
-        format.vertexPaint.strokeWidth=24f
-        findViewById<XYPlot>(R.id.xy_Bode).domainTitle.text="log(frequency)"
-        findViewById<XYPlot>(R.id.xy_Bode).domainTitle.positionMetrics.xPositionMetric=findViewById<XYPlot>(R.id.xy_Bode).title.positionMetrics.xPositionMetric
-        findViewById<XYPlot>(R.id.xy_Bode).domainTitle.anchor=Anchor.BOTTOM_MIDDLE
-        findViewById<XYPlot>(R.id.xy_Bode).rangeTitle.text="Phase (\u00b0)"
-        findViewById<XYPlot>(R.id.xy_Bode).layoutManager.remove(findViewById<XYPlot>(R.id.xy_Bode).legend)
-        findViewById<XYPlot>(R.id.xy_Bode).graph.getLineLabelStyle(XYGraphWidget.Edge.LEFT).paint.textSize=32f
-        findViewById<XYPlot>(R.id.xy_Bode).graph.getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).paint.textSize=32f
-        findViewById<XYPlot>(R.id.xy_Bode).redraw()
+        // Calculate Points
+        val bode_magnitude : XYSeries = SimpleXYSeries(data_main.listFreq.map{ log10(it) },data_main.listMagnitude,"Impedance Data") // Plots log(f) instead of f
+        val format_magnitude = LineAndPointFormatter(Color.BLACK, Color.BLACK, null, null)
+        findViewById<XYPlot>(R.id.xy_Bode_Magnitude).addSeries(bode_magnitude,format_magnitude)
+
+        val bode_phase : XYSeries = SimpleXYSeries(data_main.listFreq.map{ log10(it) },data_main.listPhase,"Impedance Data") // Plots log(f) instead of f
+        val format_phase = LineAndPointFormatter(Color.BLACK, Color.BLACK, null, null)
+        findViewById<XYPlot>(R.id.xy_Bode_Phase).addSeries(bode_phase,format_phase)
+
+        // Graphical Settings for Magnitude
+        format_magnitude.vertexPaint.strokeWidth=24f
+        findViewById<XYPlot>(R.id.xy_Bode_Magnitude).domainTitle.text="log(frequency)"
+        findViewById<XYPlot>(R.id.xy_Bode_Magnitude).domainTitle.positionMetrics.xPositionMetric=findViewById<XYPlot>(R.id.xy_Bode_Magnitude).title.positionMetrics.xPositionMetric
+        findViewById<XYPlot>(R.id.xy_Bode_Magnitude).domainTitle.anchor=Anchor.BOTTOM_MIDDLE
+        findViewById<XYPlot>(R.id.xy_Bode_Magnitude).rangeTitle.text="Magnitude (\u03a9)"
+        findViewById<XYPlot>(R.id.xy_Bode_Magnitude).layoutManager.remove(findViewById<XYPlot>(R.id.xy_Bode_Magnitude).legend)
+        findViewById<XYPlot>(R.id.xy_Bode_Magnitude).graph.getLineLabelStyle(XYGraphWidget.Edge.LEFT).paint.textSize=22f
+        findViewById<XYPlot>(R.id.xy_Bode_Magnitude).graph.getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).paint.textSize=32f
+        findViewById<XYPlot>(R.id.xy_Bode_Magnitude).domainStepMode  = StepMode.INCREMENT_BY_VAL
+        findViewById<XYPlot>(R.id.xy_Bode_Magnitude).domainStepValue = 1.0
+        findViewById<XYPlot>(R.id.xy_Bode_Magnitude).setRangeLowerBoundary(0,BoundaryMode.FIXED)
+        findViewById<XYPlot>(R.id.xy_Bode_Magnitude).redraw()
+
+        // Graphical Settings for Phase
+        format_magnitude.vertexPaint.strokeWidth=24f
+        format_phase.vertexPaint.strokeWidth=24f
+        findViewById<XYPlot>(R.id.xy_Bode_Phase).domainTitle.text="log(frequency)"
+        findViewById<XYPlot>(R.id.xy_Bode_Phase).domainTitle.positionMetrics.xPositionMetric=findViewById<XYPlot>(R.id.xy_Bode_Phase).title.positionMetrics.xPositionMetric
+        findViewById<XYPlot>(R.id.xy_Bode_Phase).domainTitle.anchor=Anchor.BOTTOM_MIDDLE
+        findViewById<XYPlot>(R.id.xy_Bode_Phase).rangeTitle.text="Phase (\u00b0)"
+        findViewById<XYPlot>(R.id.xy_Bode_Phase).layoutManager.remove(findViewById<XYPlot>(R.id.xy_Bode_Phase).legend)
+        findViewById<XYPlot>(R.id.xy_Bode_Phase).graph.getLineLabelStyle(XYGraphWidget.Edge.LEFT).paint.textSize=24f
+        findViewById<XYPlot>(R.id.xy_Bode_Phase).graph.getLineLabelStyle(XYGraphWidget.Edge.BOTTOM).paint.textSize=32f
+        findViewById<XYPlot>(R.id.xy_Bode_Phase).domainStepMode  = StepMode.INCREMENT_BY_VAL
+        findViewById<XYPlot>(R.id.xy_Bode_Phase).domainStepValue = 1.0
+        findViewById<XYPlot>(R.id.xy_Bode_Phase).redraw()
     }
 
     //https://blog.stackademic.com/10-ways-updating-the-screen-periodically-in-android-apps-88672027022c
@@ -459,7 +490,7 @@ class MainActivity : ComponentActivity() {
             if(data_main.listReal.size == data_main.listImag.size) {
                 redrawNyquist()
             }
-            if(data_main.listFreq.size == data_main.listPhase.size) {
+            if(data_main.listFreq.size == data_main.listPhase.size && data_main.listFreq.size == data_main.listMagnitude.size) {
                 redrawBode()
             }
 

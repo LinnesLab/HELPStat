@@ -105,6 +105,9 @@ object ConnectionManager : ComponentActivity() {
     val characteristic_phase = BluetoothGattCharacteristic(UUID.fromString("6a5a437f-4e3c-4a57-bf99-c4859f6ac411"),
         BluetoothGattCharacteristic.PROPERTY_NOTIFY + BluetoothGattCharacteristic.PROPERTY_READ,
         BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
+    val characteristic_magnitude = BluetoothGattCharacteristic(UUID.fromString("06192c1e-8588-4808-91b8-c4f1d650893d"),
+        BluetoothGattCharacteristic.PROPERTY_NOTIFY + BluetoothGattCharacteristic.PROPERTY_READ,
+        BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT)
 
     // Listeners
     private var listeners: MutableSet<WeakReference<ConnectionEventListener>> = mutableSetOf()
@@ -541,6 +544,9 @@ object ConnectionManager : ComponentActivity() {
                         data_main.listPhase.add(value.decodeToString().toFloat())
                     }
                     Log.i("PHASE:",data_main.listPhase.toString())
+                } else if (characteristic.uuid.toString() == "06192c1e-8588-4808-91b8-c4f1d650893d") {
+                    data_main.listMagnitude.add(value.decodeToString().toFloat())
+                    Log.i("MAGNITUDE:",data_main.listMagnitude.toString())
                 }
 
                 listenersAsSet.forEach {
@@ -574,7 +580,20 @@ object ConnectionManager : ComponentActivity() {
                 Log.i("RCT:", data_main.calculated_rct.toString())
             } else if (characteristic.uuid.toString() == "192fa626-1e5a-4018-8176-5debff81a6c6") {
                 data_main.calculated_rs = value.decodeToString()
+                data_main.finished = true
                 Log.i("RS:", data_main.calculated_rs.toString())
+            } else if (characteristic.uuid.toString() == "6a5a437f-4e3c-4a57-bf99-c4859f6ac411") {
+                if(value.decodeToString().toFloat() > 180) {
+                    data_main.listPhase.add(value.decodeToString().toFloat() - 360f) // Occasional "outlier" where phase is 2pi high
+                } else if(value.decodeToString().toFloat() < -180) {
+                    data_main.listPhase.add(value.decodeToString().toFloat() + 360f)
+                } else {
+                    data_main.listPhase.add(value.decodeToString().toFloat())
+                }
+                Log.i("PHASE:",data_main.listPhase.toString())
+            } else if (characteristic.uuid.toString() == "06192c1e-8588-4808-91b8-c4f1d650893d") {
+                data_main.listMagnitude.add(value.decodeToString().toFloat())
+                Log.i("MAGNITUDE:",data_main.listMagnitude.toString())
             }
 
             listenersAsSet.forEach {

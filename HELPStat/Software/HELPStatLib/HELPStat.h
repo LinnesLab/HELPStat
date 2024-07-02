@@ -55,7 +55,9 @@ extern "C" {
     #include <Impedance.h>
 }
 
-/* 
+/*  
+    07/01/2024: Added transmission of phase and magnitude
+
     06/19/2024: Started adjusting HELPStat::AD5940_DFTMeasure() to transmit index (of measurement), 
     frequency (of current sample), Zreal, and Zim.
 
@@ -208,6 +210,7 @@ extern "C" {
 #define CHARACTERISTIC_UUID_REAL        "67c0488c-e330-438c-a88d-59abfcfbb527"
 #define CHARACTERISTIC_UUID_IMAG        "e080f979-bb39-4151-8082-755e3ae6f055"
 #define CHARACTERISTIC_UUID_PHASE       "6a5a437f-4e3c-4a57-bf99-c4859f6ac411"
+#define CHARACTERISTIC_UUID_MAGNITUDE   "06192c1e-8588-4808-91b8-c4f1d650893d"
 
 typedef struct _impStruct {
     float freq;
@@ -314,6 +317,7 @@ class HELPStat {
         BLECharacteristic* pCharacteristicReal        = NULL;
         BLECharacteristic* pCharacteristicImag        = NULL;
         BLECharacteristic* pCharacteristicPhase       = NULL;
+        BLECharacteristic* pCharacteristicMagnitude   = NULL;
 
         // bool deviceConnected = false;
         bool start_value     = false;
