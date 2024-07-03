@@ -1,7 +1,7 @@
 /*
     FILENAME: HELPStat.h
-    AUTHOR: Kevin Alessandro Bautista
-    EMAIL: kbautis@purdue.edu
+    AUTHOR: Kevin Alessandro Bautista, Shannon Riegle
+    EMAIL: kbautis@purdue.edu, sdriegle@iu.edu
 
     DISCLAIMER: 
     Linnes Lab code, firmware, and software is released under the MIT License
@@ -61,7 +61,7 @@ extern "C" {
     06/19/2024: Started adjusting HELPStat::AD5940_DFTMeasure() to transmit index (of measurement), 
     frequency (of current sample), Zreal, and Zim.
 
-    06/13/2024: Shannon Riegle here. Implemented BLE communication to allow user to reconfigure different
+    06/13/2024: Shannon here. Implemented BLE communication to allow user to reconfigure different
     settings w/o needing to reprogram the HELPStat PCB each time. Also reorganized data-logging to have
     most recent logs on top. Figured this would be easier for future developers to see what the most recent
     changes to the library were.

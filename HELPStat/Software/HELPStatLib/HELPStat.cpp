@@ -1,7 +1,7 @@
 /*
     FILENAME: HELPStat.cpp
-    AUTHOR: Kevin Alessandro Bautista
-    EMAIL: kbautis@purdue.edu
+    AUTHORS: Kevin Alessandro Bautista, Shannon Riegle
+    EMAIL: kbautis@purdue.edu, sdriegle@iu.edu
 
     DISCLAIMER: 
     Linnes Lab code, firmware, and software is released under the MIT License
