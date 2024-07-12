@@ -148,8 +148,7 @@ void HELPStat::AD5940ImpedanceStructInit(float startFreq, float endFreq, uint32_
     pImpedanceCfg->DftSrc = DFTSRC_SINC3;
 }
 
-int32_t HELPStat::ImpedanceShowResult(uint32_t *pData, uint32_t DataCount)
-{
+int32_t HELPStat::ImpedanceShowResult(uint32_t *pData, uint32_t DataCount) {
   float freq;
 
   fImpPol_Type *pImp = (fImpPol_Type*)pData;
@@ -169,8 +168,7 @@ int32_t HELPStat::ImpedanceShowResult(uint32_t *pData, uint32_t DataCount)
   return 0;
 }
 
-void HELPStat::AD5940_Main(float startFreq, float endFreq, uint32_t numPoints, uint32_t gainArrSize, calHSTIA* gainArr)
-{
+void HELPStat::AD5940_Main(float startFreq, float endFreq, uint32_t numPoints, uint32_t gainArrSize, calHSTIA* gainArr) {
   uint32_t temp;  
 
   _gainArrSize = gainArrSize;
@@ -1004,8 +1002,7 @@ void HELPStat::AD5940_DFTMeasure(void) {
   logSweep(&_sweepCfg, &_currentFreq);
 }
 
-void HELPStat::getDFT(int32_t* pReal, int32_t* pImage) 
-{ 
+void HELPStat::getDFT(int32_t* pReal, int32_t* pImage) { 
   *pReal = AD5940_ReadAfeResult(AFERESULT_DFTREAL);
   *pReal &= 0x3ffff;
   /* Data is 18bit in two's complement, bit17 is the sign bit */
@@ -1021,8 +1018,7 @@ void HELPStat::getDFT(int32_t* pReal, int32_t* pImage)
   // printf("Real: %d, Image: %d\n", *pReal, *pImage);
 }
 
-void HELPStat::pollDFT(int32_t* pReal, int32_t* pImage)
-{
+void HELPStat::pollDFT(int32_t* pReal, int32_t* pImage) {
   /* Polls the DFT and retrieves the real and imaginary data as ints */
   while(!AD5940_GetMCUIntFlag()) {
     delay(1000); // Adding an empirical delay before polling again 
@@ -1037,15 +1033,13 @@ void HELPStat::pollDFT(int32_t* pReal, int32_t* pImage)
   else Serial.println("Flag not working!");
 }
 
-void HELPStat::getMagPhase(int32_t real, int32_t image, float *pMag, float *pPhase)
-{
+void HELPStat::getMagPhase(int32_t real, int32_t image, float *pMag, float *pPhase) {
   *pMag = sqrt((float)real*real + (float)image*image); 
   *pPhase =  atan2(-image, real);
   // printf("Magnitude: %f, Phase: %.4f\n", *pMag, *pPhase);
 }
 
-void HELPStat::logSweep(SoftSweepCfg_Type *pSweepCfg, float *pNextFreq) 
-{
+void HELPStat::logSweep(SoftSweepCfg_Type *pSweepCfg, float *pNextFreq) {
   float frequency; 
 
   // if you reach last point, go back to 0
@@ -1215,8 +1209,7 @@ void HELPStat::runSweep(uint32_t numCycles, uint32_t delaySecs) {
   // digitalWrite(LED2, HIGH);
 }
 
-void HELPStat::resetSweep(SoftSweepCfg_Type *pSweepCfg, float *pNextFreq)
-{
+void HELPStat::resetSweep(SoftSweepCfg_Type *pSweepCfg, float *pNextFreq) {
   /* Sets the index back to 0 and enables the sweep again */
   pSweepCfg->SweepIndex = 0; 
   pSweepCfg->SweepEn = bTRUE;
@@ -1226,8 +1219,7 @@ void HELPStat::resetSweep(SoftSweepCfg_Type *pSweepCfg, float *pNextFreq)
   AD5940_WGFreqCtrlS(_startFreq, SYSCLCK);
 }
 
-void HELPStat::settlingDelay(float freq) 
-{
+void HELPStat::settlingDelay(float freq) {
  
   // unsigned long constDelay = (4 * 1000 / freq); // delay constant just in case delay is too small
   unsigned long constDelay = 1000; // 1000 - delay constant just in case delay is too small 
@@ -1240,8 +1232,7 @@ void HELPStat::settlingDelay(float freq)
   
 }
 
-AD5940Err HELPStat::checkFreq(float freq)
-{
+AD5940Err HELPStat::checkFreq(float freq) {
   /* 
     Adding a delay after recalibration to improve the switching noise.
     Sudden switching introduces inaccuracies, but accurate data I feel like
@@ -1482,8 +1473,7 @@ AD5940Err HELPStat::checkFreq(float freq)
   return AD5940ERR_OK;
 }
 
-void HELPStat::sdWrite(char *output)
-{
+void HELPStat::sdWrite(char *output) {
   File _file; 
   _file = SD.open(FILENAME, FILE_WRITE);
   if(_file)
@@ -1497,8 +1487,7 @@ void HELPStat::sdWrite(char *output)
 
 }
 
-void HELPStat::sdAppend(char *output) 
-{
+void HELPStat::sdAppend(char *output) {
   File _file; 
   _file = SD.open(FILENAME, FILE_APPEND);
   if(_file)
@@ -1512,8 +1501,7 @@ void HELPStat::sdAppend(char *output)
 
 }
 
-void HELPStat::printData(void)
-{
+void HELPStat::printData(void) {
   // impStruct temp[_sweepCfg.SweepPoints];
   impStruct eis; 
   printf("Printing entire array now...\n");
@@ -1606,8 +1594,7 @@ std::vector<float> HELPStat::calculateResistors(float rct_estimate, float rs_est
   return(resistors);
 }
 
-void HELPStat::saveDataEIS(String dirName, String fileName)
-{
+void HELPStat::saveDataEIS(String dirName, String fileName) {
   String directory = "/" + dirName;
   
   if(!SD.begin(CS_SD))
@@ -2122,8 +2109,7 @@ void HELPStat::AD5940_DFTMeasureEIS(void) {
 
 /* Helper functions for refactoring how checkFreq works */
 // Adapted from AD5940 Impedance Examples
-void HELPStat::configureDFT(float freq)
-{
+void HELPStat::configureDFT(float freq) {
   FreqParams_Type freq_params;
   ClksCalInfo_Type clks_cal;
   ADCFilterCfg_Type filter_cfg;
@@ -2179,8 +2165,7 @@ void HELPStat::configureDFT(float freq)
   // Serial.println("Clocks calculated.");
 }
 
-AD5940Err HELPStat::setHSTIA(float freq)
-{
+AD5940Err HELPStat::setHSTIA(float freq) {
   HSDACCfg_Type hsdac_cfg;
   FreqParams_Type freq_params;
   ClksCalInfo_Type clks_cal;
@@ -2282,8 +2267,7 @@ AD5940Err HELPStat::setHSTIA(float freq)
   return exitStatus;
 }
 
-void HELPStat::configureFrequency(float freq)
-{
+void HELPStat::configureFrequency(float freq) {
   AD5940Err check = setHSTIA(freq);
   // configureDFT(freq);
 
@@ -2292,15 +2276,13 @@ void HELPStat::configureFrequency(float freq)
 }
 
 /* Current noise measurements */
-float HELPStat::getADCVolt(uint32_t gainPGA, float vRef1p82) 
-{ 
+float HELPStat::getADCVolt(uint32_t gainPGA, float vRef1p82) { 
   /* Bypassing SINC3 gets us ADC data */
   uint32_t adcCode = AD5940_ReadAfeResult(AFERESULT_SINC3);
   float vOut = AD5940_ADCCode2Volt(adcCode, gainPGA, vRef1p82);
 }
 
-float HELPStat::pollADC(uint32_t gainPGA, float vRef1p82)
-{
+float HELPStat::pollADC(uint32_t gainPGA, float vRef1p82) {
   float vOut;
   float kFactor = 1.835/1.82;
   /* Polls ADC and returns a voltage and the ADCcode */
@@ -2667,8 +2649,7 @@ void HELPStat::AD5940_ADCMeasure(void) {
   AD5940_ShutDownS();
 }
 
-void HELPStat::ADCsweep(void)
-{
+void HELPStat::ADCsweep(void) {
   Serial.println("Running sweep!");
   for(int i = 0; i < 10; i++)
   {
@@ -2680,8 +2661,7 @@ void HELPStat::ADCsweep(void)
   Serial.println("Shutting down now.");
 }
 
-void HELPStat::PGACal(void)
-{
+void HELPStat::PGACal(void) {
   AD5940Err err;
   ADCPGACal_Type pgacal;
   pgacal.AdcClkFreq = 16e6;
@@ -2703,8 +2683,7 @@ void HELPStat::PGACal(void)
   Taken from Analog Devices ADC Polling Example and expounded on for noise
   measurements. Link: https://github.com/analogdevicesinc/ad5940-examples/blob/master/examples/AD5940_ADC/AD5940_ADCPolling.c
 */
-void HELPStat::ADCNoiseTest(void)
-{
+void HELPStat::ADCNoiseTest(void) {
   ADCBaseCfg_Type adc_base;
   ADCFilterCfg_Type adc_filter;
   SWMatrixCfg_Type sw_cfg;
@@ -2859,8 +2838,7 @@ void HELPStat::ADCNoiseTest(void)
   AD5940_ShutDownS();
 }
 
-void HELPStat::saveDataNoise(String dirName, String fileName)
-{
+void HELPStat::saveDataNoise(String dirName, String fileName) {
   String directory = "/" + dirName;
   
   if(!SD.begin(CS_SD))
@@ -2912,8 +2890,7 @@ void HELPStat::saveDataNoise(String dirName, String fileName)
   }
 }
 
-void HELPStat::AD5940_HSTIARcal(int rHSTIA, float rcalVal)
-{
+void HELPStat::AD5940_HSTIARcal(int rHSTIA, float rcalVal) {
   HSRTIACal_Type rcalTest; // Rcal under test
   FreqParams_Type freqParams;
   fImpPol_Type polarResults; 
@@ -3116,9 +3093,11 @@ void HELPStat::BLE_setup() {
   Note that this is practically an infinite loop if the BLE signal is never sent.
 */
 void HELPStat::BLE_settings() {
+  bool buttonStatus;
   do{
     old_start_value = start_value;
     start_value = *(pCharacteristicStart->getData());
+    buttonStatus = digitalRead(BUTTON);
     delay(3);
 
     std::string rx_rct_str = pCharacteristicRct->getValue();
@@ -3172,7 +3151,7 @@ void HELPStat::BLE_settings() {
     folderName = String((pCharacteristicFolderName->getValue()).c_str());
 
     fileName = String((pCharacteristicFileName->getValue()).c_str());
-  }while((!start_value || old_start_value == start_value)); // Maybe remove the old_start_value stuff? (&& digitalRead(BUTTON))
+  }while((!start_value || old_start_value == start_value) && buttonStatus); // Maybe remove the old_start_value stuff? (&& digitalRead(BUTTON))
 }
 
 /*

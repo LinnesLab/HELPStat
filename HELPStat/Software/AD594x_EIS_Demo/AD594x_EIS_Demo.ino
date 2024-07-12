@@ -94,7 +94,7 @@ void setup() {
   demo.BLE_setup();
   /* Optional inputs to establish pins for button and LEDs*/
   pinMode(LEDPIN, OUTPUT);
-  pinMode(BUTTON, INPUT);
+  pinMode(BUTTON, INPUT_PULLUP);
   digitalWrite(LEDPIN, HIGH); // Initial LED State
   
   /* 
@@ -144,7 +144,6 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly: 
   demo.BLE_settings();
-  int buttonStatus = digitalRead(BUTTON); 
   delay(10); // Additional Debounce delay - 10 ms 
 
   // if(buttonStatus == LOW)
