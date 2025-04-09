@@ -1,7 +1,7 @@
 /*
     FILENAME: HELPStat.cpp
-    AUTHORS: Kevin Alessandro Bautista, Shannon Riegle
-    EMAIL: kbautis@purdue.edu, sdriegle@iu.edu
+    AUTHOR: Kevin Alessandro Bautista
+    EMAIL: kbautis@purdue.edu
 
     DISCLAIMER: 
     Linnes Lab code, firmware, and software is released under the MIT License
@@ -1128,8 +1128,8 @@ void HELPStat::runSweep(void) {
   
   /* Shutdown to conserve power. This turns off the LP-Loop and resets the AFE. */
   AD5940_ShutDownS();
-  Serial.println("All cycles finished.");
-  Serial.println("AD594x shutting down.");
+  printf("All cycles finished.");
+  printf("AD594x shutting down.");
 
   /* LEDs to show end of cycle */
   // digitalWrite(LED1, LOW);
@@ -1543,7 +1543,7 @@ void HELPStat::printData(void) {
   to use, and the other that uses private variables. These private variables are updated in the
   BLE_settings() function.
 */
-std::vector<float> HELPStat::calculateResistors() {
+void HELPStat::calculateResistors() {
   std::vector<float> Z_real;
   std::vector<float> Z_imag;
 
@@ -1565,10 +1565,9 @@ std::vector<float> HELPStat::calculateResistors() {
   Serial.print("Calculated Rs:  ");
   Serial.println(_calculated_Rs);
 
-  std::vector<float> resistors = {_calculated_Rct,_calculated_Rs};
-  return(resistors);
+  return;
 }
-std::vector<float> HELPStat::calculateResistors(float rct_estimate, float rs_estimate) {
+void HELPStat::calculateResistors(float rct_estimate, float rs_estimate) {
   std::vector<float> Z_real;
   std::vector<float> Z_imag;
 
@@ -1590,8 +1589,70 @@ std::vector<float> HELPStat::calculateResistors(float rct_estimate, float rs_est
   Serial.print("Calculated Rs:  ");
   Serial.println(_calculated_Rs);
 
-  std::vector<float> resistors = {_calculated_Rct,_calculated_Rs};
-  return(resistors);
+  return;
+}
+
+void HELPStat::saveDataEIS() {
+  String directory = "/" + _folderName;
+  
+  if(!SD.begin(CS_SD))
+  {
+    Serial.println("Card mount failed.");
+    return;
+  }
+
+  if(!SD.exists(directory))
+  {
+    /* Creating a directory to store the data */
+    if(SD.mkdir(directory)) Serial.println("Directory made successfully.");
+    else
+    {
+      Serial.println("Couldn't make a directory or it already exists.");
+      return;
+    }
+  }
+
+  else Serial.println("Directory already exists.");
+
+  /* Writing to the files */
+  Serial.println("Saving to folder now.");
+
+  // All cycles 
+  String filePath = _folderName + "/" + _fileName + ".csv";
+
+  File dataFile = SD.open(filePath, FILE_WRITE); 
+  if(dataFile)
+  {
+    for(uint32_t i = 0; i <= _numCycles; i++)
+    {
+      dataFile.print("Freq, Magnitude, Phase (rad), Phase (deg), Real, Imag");
+    }
+    dataFile.println("");
+    for(uint32_t i = 0; i < _sweepCfg.SweepPoints; i++)
+    {
+      for(uint32_t j = 0; j <= _numCycles; j++)
+      {
+        impStruct eis;
+        eis = eisArr[i + (j * _sweepCfg.SweepPoints)];
+        dataFile.print(eis.freq);
+        dataFile.print(",");
+        dataFile.print(eis.magnitude);
+        dataFile.print(",");
+        dataFile.print(eis.phaseRad);
+        dataFile.print(",");
+        dataFile.print(eis.phaseDeg);
+        dataFile.print(",");
+        dataFile.print(eis.real);
+        dataFile.print(",");
+        dataFile.print(eis.imag);
+        dataFile.print(",");
+      }
+      /* Moves to the next line */
+      dataFile.println("");
+    }
+    dataFile.close();
+    Serial.println("Data appended successfully.");
+  }
 }
 
 void HELPStat::saveDataEIS(String dirName, String fileName) {
@@ -3100,57 +3161,32 @@ void HELPStat::BLE_settings() {
     buttonStatus = digitalRead(BUTTON);
     delay(3);
 
-    std::string rx_rct_str = pCharacteristicRct->getValue();
-    if(rx_rct_str.length() > 0)
-      _rct_estimate = std::stof(rx_rct_str);
-    
-    std::string rx_rs_str  = pCharacteristicRs->getValue();
-    if(rx_rs_str.length() > 0)
-      _rs_estimate  = std::stof(rx_rs_str);
-
-    std::string numCycles_str = pCharacteristicNumCycles->getValue();
-    if(numCycles_str.length() > 0)
-      _numCycles = std::stoul(numCycles_str);
-
-    std::string numPoints_str = pCharacteristicNumPoints->getValue();
-    if(numPoints_str.length() > 0)
-      _numPoints = std::stoul(numPoints_str);
-
-    std::string startFreq_str = pCharacteristicStartFreq->getValue();
-    if(startFreq_str.length() > 0)
-      _startFreq = std::stof(startFreq_str);
-
-    std::string endFreq_str   = pCharacteristicEndFreq->getValue();
-    if(endFreq_str.length() > 0)
-      _endFreq = std::stof(endFreq_str);
-
-    std::string rcalVal_str   = pCharacteristicRcalVal->getValue();
-    if(rcalVal_str.length() > 0)
-      _rcalVal = std::stof(rcalVal_str);
-
-    std::string biasvolt_str   = pCharacteristicBiasVolt->getValue();
-    if(biasvolt_str.length() > 0)
-      _biasVolt = std::stof(biasvolt_str);
-
-    std::string zeroVolt_str   = pCharacteristicZeroVolt->getValue();
-    if(zeroVolt_str.length() > 0)
-      _zeroVolt = std::stof(zeroVolt_str);
-
-    std::string delaySecs_str   = pCharacteristicDelaySecs->getValue();
-    if(delaySecs_str.length() > 0)
-      _delaySecs = std::stoul(delaySecs_str);
-
-    std::string extGain_str   = pCharacteristicExtGain->getValue();
-    if(extGain_str.length() > 0)
-      _extGain = std::stoi(extGain_str);
-
-    std::string dacGain_str   = pCharacteristicDacGain->getValue();
-    if(dacGain_str.length() > 0)
-      _dacGain = std::stoi(dacGain_str);
-
-    folderName = String((pCharacteristicFolderName->getValue()).c_str());
-
-    fileName = String((pCharacteristicFileName->getValue()).c_str());
+    if(pCharacteristicRct->getValue() != NULL)
+      _rct_estimate = pCharacteristicRct->getValue().toFloat();
+    if(pCharacteristicRs->getValue() != NULL)
+      _rs_estimate  = pCharacteristicRs->getValue().toFloat();
+    if(pCharacteristicNumCycles->getValue() != NULL)
+      _numCycles = pCharacteristicNumCycles->getValue().toFloat();
+    if(pCharacteristicNumPoints->getValue() != NULL)
+      _numPoints = pCharacteristicNumPoints->getValue().toFloat();
+    if(pCharacteristicStartFreq->getValue() != NULL)
+      _startFreq = pCharacteristicStartFreq->getValue().toFloat();
+    if(pCharacteristicEndFreq->getValue() != NULL)
+      _endFreq   = pCharacteristicEndFreq->getValue().toFloat();
+    if(pCharacteristicRcalVal->getValue() != NULL)
+      _rcalVal   = pCharacteristicRcalVal->getValue().toFloat();
+    if(pCharacteristicBiasVolt->getValue() != NULL)
+      _biasVolt   = pCharacteristicBiasVolt->getValue().toFloat();
+    if(pCharacteristicZeroVolt->getValue() != NULL)
+      _zeroVolt   = pCharacteristicZeroVolt->getValue().toFloat();
+    if(pCharacteristicDelaySecs->getValue() != NULL)
+      _delaySecs   = pCharacteristicDelaySecs->getValue().toFloat();
+    if(pCharacteristicExtGain->getValue() != NULL)
+      _extGain   = pCharacteristicExtGain->getValue().toFloat();
+    if(pCharacteristicDacGain->getValue() != NULL)
+      _dacGain   = pCharacteristicDacGain->getValue().toFloat();
+    _folderName = String((pCharacteristicFolderName->getValue()).c_str());
+    _fileName = String((pCharacteristicFileName->getValue()).c_str());
   }while((!start_value || old_start_value == start_value) && buttonStatus); // Maybe remove the old_start_value stuff? (&& digitalRead(BUTTON))
 }
 
@@ -3167,9 +3203,6 @@ void HELPStat::BLE_transmitResults() {
   dtostrf(_calculated_Rs,4,3,buffer);
   pCharacteristicRs->setValue(buffer);
   pCharacteristicRs->notify();
-
-  Serial.println(_sweepCfg.SweepPoints);
-  Serial.println(_numCycles);
 
   // Transmit freq, Zreal, and Zimag for all sampled points
   for(uint32_t i = 0; i < _sweepCfg.SweepPoints; i++) {
@@ -3254,7 +3287,7 @@ void HELPStat::print_settings() {
 
   // Print folder/file names
   Serial.print("Folder Name:     ");
-  Serial.println(folderName);
+  Serial.println(_folderName);
   Serial.print("File Name:       ");
-  Serial.println(fileName);
+  Serial.println(_fileName);
 }

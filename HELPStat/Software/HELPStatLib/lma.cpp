@@ -26,6 +26,7 @@
 //=================================================================================================================
 #include <vector>
 #include "eigen.h"
+#include "Arduino.h"
 
 // Internal variable used to monitor status of Levenberg-Marquardt algorithm. No related functionality (yet)
 // -2: NotStarted
@@ -215,29 +216,29 @@ struct LMFunctorRs {
 // * float Rct                 - Optimized value for Rct (charge transfer resistance) in ohms
 //=================================================================================================================
 float calculate_Rct(float rct_estimate, float rs_estimate, std::vector<float> r_data, std::vector<float> i_data) {
-  Eigen::VectorXf param_rct(2); // Estimates
-  param_rct(0) = rct_estimate;
-  param_rct(1) = rs_estimate;
-
-  LMFunctorRct functor_rct;
-
-  int m = r_data.size();
-
-  Eigen::MatrixXf measuredValues(m, 2);
-  for(int i = 0; i < m; i++) {
-    measuredValues(i,0) = r_data[i];
-    measuredValues(i,1) = i_data[i];
-  }
-
-  functor_rct.measuredValues = measuredValues;
-  functor_rct.m = m;
-  functor_rct.n = 2;
-
-  Eigen::LevenbergMarquardt<LMFunctorRct, float> lm_rct(functor_rct);
-  status = lm_rct.minimize(param_rct);
+	Eigen::VectorXf param_rct(2); // Estimates
+	param_rct(0) = rct_estimate;
+	param_rct(1) = rs_estimate;
   
-  return(param_rct(0));
-}
+	LMFunctorRct functor_rct;
+  
+	int m = r_data.size();
+  
+	Eigen::MatrixXf measuredValues(m, 2);
+	for(int i = 0; i < m; i++) {
+	  measuredValues(i,0) = r_data[i];
+	  measuredValues(i,1) = i_data[i];
+	}
+  
+	functor_rct.measuredValues = measuredValues;
+	functor_rct.m = m;
+	functor_rct.n = 2;
+  
+	Eigen::LevenbergMarquardt<LMFunctorRct, float> lm_rct(functor_rct);
+	status = lm_rct.minimize(param_rct);
+	
+	return(param_rct(0));
+  }
 
 //=================================================================================================================
 // calculate_Rs
@@ -252,26 +253,26 @@ float calculate_Rct(float rct_estimate, float rs_estimate, std::vector<float> r_
 // * float Rs                  - Optimized value for Rs (solution resistance) in ohms
 //=================================================================================================================
 float calculate_Rs(float rct_estimate, float rs_estimate, std::vector<float> r_data, std::vector<float> i_data) {
-  Eigen::VectorXf param_rs(2); // Estimates
-  param_rs(0) = rct_estimate;
-  param_rs(1) = rs_estimate;
-
-  LMFunctorRs functor_rs;
-
-  int m = r_data.size();
-
-  Eigen::MatrixXf measuredValues(m, 2);
-  for(int i = 0; i < m; i++) {
-    measuredValues(i,0) = r_data[i];
-    measuredValues(i,1) = i_data[i];
-  }
-
-  functor_rs.measuredValues = measuredValues;
-  functor_rs.m = m;
-  functor_rs.n = 2;
-
-  Eigen::LevenbergMarquardt<LMFunctorRs, float> lm_rs(functor_rs);
-  status = lm_rs.minimize(param_rs);
+	Eigen::VectorXf param_rs(2); // Estimates
+	param_rs(0) = rct_estimate;
+	param_rs(1) = rs_estimate;
   
-  return(param_rs(1));
-}
+	LMFunctorRs functor_rs;
+  
+	int m = r_data.size();
+  
+	Eigen::MatrixXf measuredValues(m, 2);
+	for(int i = 0; i < m; i++) {
+	  measuredValues(i,0) = r_data[i];
+	  measuredValues(i,1) = i_data[i];
+	}
+  
+	functor_rs.measuredValues = measuredValues;
+	functor_rs.m = m;
+	functor_rs.n = 2;
+  
+	Eigen::LevenbergMarquardt<LMFunctorRs, float> lm_rs(functor_rs);
+	status = lm_rs.minimize(param_rs);
+	
+	return(param_rs(1));
+  }

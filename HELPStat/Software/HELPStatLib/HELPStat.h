@@ -1,7 +1,7 @@
 /*
     FILENAME: HELPStat.h
-    AUTHOR: Kevin Alessandro Bautista, Shannon Riegle
-    EMAIL: kbautis@purdue.edu, sdriegle@iu.edu
+    AUTHOR: Kevin Alessandro Bautista
+    EMAIL: kbautis@purdue.edu
 
     DISCLAIMER: 
     Linnes Lab code, firmware, and software is released under the MIT License
@@ -61,7 +61,7 @@ extern "C" {
     06/19/2024: Started adjusting HELPStat::AD5940_DFTMeasure() to transmit index (of measurement), 
     frequency (of current sample), Zreal, and Zim.
 
-    06/13/2024: Shannon here. Implemented BLE communication to allow user to reconfigure different
+    06/13/2024: Shannon Riegle here. Implemented BLE communication to allow user to reconfigure different
     settings w/o needing to reprogram the HELPStat PCB each time. Also reorganized data-logging to have
     most recent logs on top. Figured this would be easier for future developers to see what the most recent
     changes to the library were.
@@ -324,8 +324,8 @@ class HELPStat {
         bool old_start_value = false;
 
         // File and FolderNames
-        String folderName = "folder-name-here"; 
-        String fileName = "file-name-here"; 
+        String _folderName = "folder-name-here"; 
+        String _fileName = "file-name-here"; 
 
     public:
         HELPStat();
@@ -362,11 +362,12 @@ class HELPStat {
         void sdWrite(char *output);
         void sdAppend(char *output);
         void printData(void); 
+        void saveDataEIS(void);
         void saveDataEIS(String dirName, String fileName);
 
         /* LMA for Rct / Rs Calculation */
-        std::vector<float> calculateResistors(void);
-        std::vector<float> calculateResistors(float rct_estimate, float rs_estimate);
+        void calculateResistors(void);
+        void calculateResistors(float rct_estimate, float rs_estimate);
 
         /* Functions to test bias voltage */
         void AD5940_BiasCfg(float startFreq, float endFreq, uint32_t numPoints, float biasVolt, float zeroVolt, int delaySecs);
