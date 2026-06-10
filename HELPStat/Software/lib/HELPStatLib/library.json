@@ -1,0 +1,19 @@
+{
+  "name": "HELPStat",
+  "version": "1.0.0",
+  "description": "Driver and EIS measurement library for the HELPStat potentiostat (Analog Devices AD5941) on the ESP32, with BLE control, SD logging, and Levenberg-Marquardt Randles-cell fitting.",
+  "keywords": "potentiostat, EIS, AD5941, AD594x, ESP32, impedance, BLE",
+  "authors": [
+    { "name": "Kevin Alessandro Bautista", "email": "kbautis@purdue.edu" },
+    { "name": "Shannon Riegle", "email": "sdriegle@iu.edu" }
+  ],
+  "license": "MIT",
+  "frameworks": "arduino",
+  "platforms": "espressif32",
+  "dependencies": [
+    {
+      "name": "Bolder Flight Systems Eigen",
+      "version": "https://github.com/LinnesLab/Eigen-Port.git"
+    }
+  ]
+}

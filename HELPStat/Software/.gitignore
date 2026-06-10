@@ -1,0 +1,9 @@
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+
+# IDE
+.vscode/
+!.vscode/extensions.json
+.idea/
