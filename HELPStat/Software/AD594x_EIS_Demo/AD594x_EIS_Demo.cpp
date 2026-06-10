@@ -29,9 +29,16 @@
     SOFTWARE.
 */
 
+#include <Arduino.h>
 #include "HELPStat.h"
 #include <vector>
 #include <string>
+
+/* Forward declarations.
+   Unlike an .ino sketch (where the Arduino build auto-generates prototypes), a
+   .cpp must declare any function used before it is defined. blinkLED() is called
+   in loop() but defined at the bottom of the file. */
+void blinkLED(int cycles, bool state);
 
 /* Reference constants for gain values - taken from AD5941.h library by Analog Devices */
 //#define HSTIARTIA_200               0     /**< HSTIA Internal RTIA resistor 200  */
